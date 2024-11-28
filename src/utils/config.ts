@@ -10,17 +10,20 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 interface ENV {
   BOT_TOKEN: string | undefined;
+  USER_TO_BE_SHOUT: string | undefined;
 }
 
 interface Config {
   BOT_TOKEN: string;
+  USER_TO_BE_SHOUT: string | undefined;
 }
 
 // Loading process.env as ENV interface
 
 const getConfig = (): ENV => {
   return {
-    BOT_TOKEN: process.env.BOT_TOKEN
+    BOT_TOKEN: process.env.BOT_TOKEN,
+    USER_TO_BE_SHOUT: process.env.USER_TO_BE_SHOUT
   };
 };
 
