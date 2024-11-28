@@ -1,0 +1,33 @@
+{
+  "name": "manuelbottelegram",
+  "version": "1.0.0",
+  "description": "Telegram bot",
+  "main": "bot.ts",
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "build": "tsc",
+    "build --watch": "tsc --watch",
+    "start": "node lib/bot.js",
+    "start-dev": "nodemon src/bot.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "german",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
+    "grammy": "^1.32.0",
+    "ts-lib": "^0.0.5",
+    "tslog": "^4.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.8.4",
+    "@typescript-eslint/eslint-plugin": "^8.12.2",
+    "@typescript-eslint/parser": "^8.12.2",
+    "eslint": "^9.15.0",
+    "nodemon": "^3.1.7",
+    "tslib": "^2.8.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.12.2"
+  }
+}
