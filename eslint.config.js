@@ -21,7 +21,8 @@ export default [
       },
       globals: { 
         __dirname: "readonly",
-        process: "readonly"
+        process: "readonly",
+        __filename: "readonly"
       }
     },
     // This is needed in order to specify the desired behavior for its rules
