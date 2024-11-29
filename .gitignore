@@ -4,3 +4,4 @@ lib
 outDir
 .env
 tsconfig.tsbuildinfo
+.vscode/*

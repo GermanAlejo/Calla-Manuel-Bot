@@ -1,7 +1,8 @@
+//Not used right now
+/*
 export namespace NodeJS {
     interface ProcessEnv {
-      NODE_ENV: string;
-      PORT: string;
       BOT_TOKEN: string;
+      USER_TO_BE_SHOUT: string;
     }
-  }
+}*/

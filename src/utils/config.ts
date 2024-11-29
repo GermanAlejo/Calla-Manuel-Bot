@@ -9,21 +9,21 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 // as someone could skip these varibales or not setup a .env file at all
 
 interface ENV {
-  BOT_TOKEN: string | undefined;
-  USER_TO_BE_SHOUT: string | undefined;
+  botToken: string | undefined;
+  userToBeShout: string | undefined;
 }
 
 interface Config {
-  BOT_TOKEN: string;
-  USER_TO_BE_SHOUT: string | undefined;
+  botToken: string;
+  userToBeShout: string | undefined;
 }
 
 // Loading process.env as ENV interface
 
 const getConfig = (): ENV => {
   return {
-    BOT_TOKEN: process.env.BOT_TOKEN,
-    USER_TO_BE_SHOUT: process.env.USER_TO_BE_SHOUT
+    botToken: process.env.BOT_TOKEN,
+    userToBeShout: process.env.USER_TO_BE_SHOUT
   };
 };
 
