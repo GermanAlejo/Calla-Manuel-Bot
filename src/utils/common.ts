@@ -35,7 +35,7 @@ export enum ErrorEnum {
 
 export enum TimeComparatorEnum {
     manana = 7,
-    tarde = 13,
+    tarde = 12,
     noche = 20
 }
 
