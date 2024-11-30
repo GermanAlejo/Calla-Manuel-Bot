@@ -1,7 +1,8 @@
 import { Api, Bot, Context, RawApi } from "grammy";
 import config from './utils/config';
-import { ChatMember } from "grammy/types";
-import { log, ErrorConstants, buenosDiasRegex } from './utils/common';
+import { log, ErrorEnum, buenosDiasRegex, DayPeriodsEnum } from './utils/common';
+import { runCommands } from "./bot-replies/commands";
+import { buenosDias, buenasTardes, buenasNoches, paTiMiCola, generalSaludo } from "./bot-replies/saluda";
 
 // Create a bot object
 const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
@@ -15,91 +16,42 @@ startBot(shutUpBot)
         log.trace(e);
         log.error(e);
     });
-
-shoutToUser(shutUpBot);
-
-function shoutToUser(bot: Bot<Context, Api<RawApi>>) {
-    try {
-        // Register listeners to handle messages
-        bot.on(':text').hears(buenosDiasRegex, async (ctx) => {
-            const user: ChatMember = await ctx.getAuthor();
-            if (user.user.username) {
-                const userName: string = user.user.username;
-                if (checkUser(userName)) {
-                    log.info('Chosen User Found: ' + userName);
-                    await ctx.reply("CALLATE @" + userName);
-                    //await bot.api.sendMessage();
-                } else {
-                    const message: string | undefined = ctx.message?.text.toLowerCase() || "";
-                    if (message) {
-                        log.info('Replying to random user: ' + userName);
-                        if (message.includes("dias") || message.includes("días") || message.includes("dia") || message.includes("día")) {
-                            await ctx.reply("Buenos Dias @" + userName);
-                            await ctx.react("❤‍🔥");
-                        } else if(message.includes("tardes") || message.includes("tarde")) {
-                            await ctx.reply("Buenas Tardes @" + userName);
-                            await ctx.react("👌");
-                        } else if (message.includes("noche") || message.includes("noches")) {
-                            await ctx.reply("Buenas Noches @" + userName);
-                            await ctx.react("👻");
-                        } else if (message.includes("buenas") || message.includes("buena")) {
-                            await ctx.reply("Buenaaasss @" + userName);
-                            await ctx.react("🔥");
-                        } else {
-                            await ctx.reply("Hola @" + userName);
-                            await ctx.react("❤‍🔥");
-                        }
-                    } else {
-                        log.error(ErrorConstants.errorReadingUser);
-                        log.error('Error in: ' + __filename + '-Located: ' + __dirname);
-                        throw new Error(ErrorConstants.errorReadingUser)
-                    }
-                }
-            }
-        });
-        bot.api.setMyCommands([
-            { command: "start", description: "Start the bot" },
-            { command: "help", description: "Show help text" },
-            { command: "Stop", description: "Stop the bot" },
-        ]);
-        // Reacts to /start commands
-        bot.on('message').command('start', async ctx => {
-            await ctx.reply('this is the start command');
-        });
-        // Reacts to /help commands
-        bot.on('message').command('help', async ctx => {
-            await ctx.reply('this is the help command');
-        });
-        bot.on('message').command('stop', async ctx => {
-            await ctx.reply('This is the stop command');
-        });
-        //Remove this
-        bot.on('message').command('test', async ctx => {
-            const user = (await ctx.getAuthor()).user;
-            const testUserMessage = 'Found unexpected value: ' + JSON.stringify(user);
-            log.info(testUserMessage);
-            await ctx.reply('Check console for resuls...');
-        });
-    } catch (err) {
-        log.trace(err);
-        log.error(err);
-    }
+try {
+    runCommands(shutUpBot);
+    runBotSalutations(shutUpBot);
+    //shutUpBot.use(isManuel);
+} catch (err) {
+    log.error(err);
+    log.trace("Error in bot.ts");
+    throw err;
 }
 
-function checkUser(user: string | undefined) {
-    if (!config.userToBeShout) {
-        throw new Error(ErrorConstants.noSelectedUser);
+//async function isManuel(ctx: Context, next: NextFunction): Promise<boolean> {
+//    log.info("This is the user to be ignored");
+//    return ((await ctx.getAuthor()).user.username == config.userToBeShout);
+//}
+
+function runBotSalutations(bot: Bot) {
+    try {
+        if (buenosDiasRegex.length > 1) {
+            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.manana], async (ctx) => await buenosDias(ctx));
+            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.tarde], async (ctx) => await buenasTardes(ctx));
+            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.noche], async (ctx) => await buenasNoches(ctx));
+            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.hola], async (ctx) => await paTiMiCola(ctx));
+        } else {
+            bot.on(":text").hears(buenosDiasRegex, async (ctx) => await generalSaludo(ctx));//change this funcion
+        }
+    } catch (err) {
+        log.error(ErrorEnum.errorReadingUser);
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error(ErrorEnum.errorReadingUser);
     }
-    if (user !== config.userToBeShout) {
-        return false;
-    }
-    return true;
 }
 
 async function startBot(bot: Bot<Context, Api<RawApi>>) {
     try {
         if (bot instanceof Error) {
-            throw new Error(ErrorConstants.launchError);
+            throw new Error(ErrorEnum.launchError);
         }
         log.info("Starting Bot server");
         // Start the bot (using long polling)
