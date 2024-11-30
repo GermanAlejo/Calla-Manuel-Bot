@@ -88,7 +88,7 @@ export async function buenosDias(ctx) {
                     await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
                     await ctx.react("❤‍🔥");
                 } else {
-                    await ctx.reply(InsultosEnum.mañanaInsulto + " @" + userName);
+                    await ctx.reply(InsultosEnum.mananaInsulto + " @" + userName);
                     await ctx.react("🤡");
                 }
             }
