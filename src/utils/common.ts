@@ -13,7 +13,7 @@ export const buenosDiasRegex: RegExp[] = [
 export enum SaludosEnum {
     buenosDias = "Buenos Dias",
     buenasTardes = "Buenas Tardes",
-    BuenasNoches = "Buenas Noches"
+    buenasNoches = "Buenas Noches"
 }
 
 //Sustituir por un array de insultos y sacar uno aleatorio
@@ -34,16 +34,13 @@ export enum ErrorEnum {
 }
 
 export enum TimeComparatorEnum {
-    manana = 7,
-    tarde = 12,
-    noche = 20
-}
-
-export enum DayPeriodsEnum {
-    manana = 0,
-    tarde = 1,
-    noche = 2,
-    hola = 3
+    mananaTime = 7,
+    tardeTime = 12,
+    nocheTime = 20,
+    mananaCode = 0,
+    tardeCode = 1,
+    nocheCode = 2,
+    holaCode = 3
 }
 
 /**
@@ -53,21 +50,21 @@ export enum DayPeriodsEnum {
  * 
  * @returns 
  */
-export function isBuenosDiasTime(saludoTime: number): number {
+export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
     log.info("--isBuenosDiasTime--");
     let dayPeriod: number;
-    if(saludoTime >= TimeComparatorEnum.manana && saludoTime < TimeComparatorEnum.tarde) {
+    if(saludoTime >= TimeComparatorEnum.mananaTime && saludoTime < TimeComparatorEnum.tardeTime) {
         //mañana
         log.info("In the morning");
-        dayPeriod = DayPeriodsEnum.manana;
-    } else if (saludoTime >= TimeComparatorEnum.tarde && saludoTime < TimeComparatorEnum.noche) {
+        dayPeriod = TimeComparatorEnum.mananaCode;
+    } else if (saludoTime >= TimeComparatorEnum.tardeTime && saludoTime < TimeComparatorEnum.nocheTime) {
         //tarde
         log.info("Es por la tarde");
-        dayPeriod = DayPeriodsEnum.tarde;
-    } else if (saludoTime >= TimeComparatorEnum.noche && saludoTime < TimeComparatorEnum.manana) {
+        dayPeriod = TimeComparatorEnum.tardeCode;
+    } else if (saludoTime >= TimeComparatorEnum.nocheTime && saludoTime < TimeComparatorEnum.mananaTime) {
         //noche
         log.info("Es de noche");
-        dayPeriod = DayPeriodsEnum.noche;
+        dayPeriod = TimeComparatorEnum.nocheCode;
     } else {
         log.error(ErrorEnum.errorInTime);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);

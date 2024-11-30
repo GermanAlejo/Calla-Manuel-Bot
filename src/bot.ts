@@ -1,8 +1,8 @@
 import { Api, Bot, Context, RawApi } from "grammy";
 import config from './utils/config';
-import { log, ErrorEnum, buenosDiasRegex, DayPeriodsEnum } from './utils/common';
+import { log, ErrorEnum, buenosDiasRegex, TimeComparatorEnum } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
-import { buenosDias, buenasTardes, buenasNoches, paTiMiCola, generalSaludo } from "./bot-replies/saluda";
+import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "./bot-replies/saluda";
 
 // Create a bot object
 const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
@@ -34,17 +34,15 @@ try {
 function runBotSalutations(bot: Bot) {
     try {
         if (buenosDiasRegex.length > 1) {
-            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.manana], async (ctx) => await buenosDias(ctx));
-            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.tarde], async (ctx) => await buenasTardes(ctx));
-            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.noche], async (ctx) => await buenasNoches(ctx));
-            bot.on(":text").hears(buenosDiasRegex[DayPeriodsEnum.hola], async (ctx) => await paTiMiCola(ctx));
-        } else {
-            bot.on(":text").hears(buenosDiasRegex, async (ctx) => await generalSaludo(ctx));//change this funcion
+            bot.on(":text").hears(buenosDiasRegex[TimeComparatorEnum.mananaCode], async (ctx: Context) => await buenosDias(ctx));
+            bot.on(":text").hears(buenosDiasRegex[TimeComparatorEnum.tardeCode], async (ctx: Context) => await buenasTardes(ctx));
+            bot.on(":text").hears(buenosDiasRegex[TimeComparatorEnum.nocheCode], async (ctx: Context) => await buenasNoches(ctx));
+            bot.on(":text").hears(buenosDiasRegex[TimeComparatorEnum.holaCode], async (ctx: Context) => await paTiMiCola(ctx));
         }
     } catch (err) {
         log.error(ErrorEnum.errorReadingUser);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error(ErrorEnum.errorReadingUser);
+        throw err;
     }
 }
 

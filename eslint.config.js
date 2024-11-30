@@ -67,7 +67,10 @@ export default [
       '@typescript-eslint/triple-slash-reference': 'error',
       '@typescript-eslint/no-base-to-string': 'warn',
       '@typescript-eslint/no-array-delete': 'error',
-      '@typescript-eslint/await-thenable': 'error'
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-enum-comparison': 'warn'
     }
   }
 ];
