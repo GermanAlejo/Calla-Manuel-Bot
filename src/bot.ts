@@ -16,6 +16,7 @@ startBot(shutUpBot)
         log.trace(e);
         log.error(e);
     });
+    
 try {
     runCommands(shutUpBot);
     runBotSalutations(shutUpBot);
