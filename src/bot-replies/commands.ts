@@ -1,14 +1,14 @@
-import { log } from "../utils/common";
+import { BLOCKED_USERNAME, log } from "../utils/common";
 import { Bot, Context, InputFile } from "grammy";
 
 export function runCommands(bot: Bot) {
     // Reacts to /start commands
-    bot.on('message').command('start', async (ctx: Context) => {
+    bot.command('start', async (ctx: Context) => {
         log.info("Start Command...");
         await ctx.reply('this is the start command');
     });
     // Reacts to /help commands
-    bot.on('message').command('help', async (ctx: Context) => {
+    bot.command('help', async (ctx: Context) => {
         log.info("Help Command...");
         await ctx.reply('this is the help command');
     });
@@ -24,4 +24,9 @@ export function runCommands(bot: Bot) {
         log.info("Sending Audio...");
         await ctx.replyWithVoice(new InputFile("media/putaMadre.ogg"));
     });
+    bot.on('message').command('callaManuel', async (ctx: Context) => {
+        log.info("Mandando callar a manuel...");
+        await ctx.reply('CALLATE @' + BLOCKED_USERNAME);
+    });
+    
 }
