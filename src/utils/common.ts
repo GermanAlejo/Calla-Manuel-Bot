@@ -1,7 +1,15 @@
+import { Context } from 'grammy';
 import config from './config';
 import { Logger } from "tslog";
 
 export const log = new Logger();
+
+// Save in local var the locked user
+export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
+
+export const ignoreUser: boolean = false;
+
+export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
 
 export const buenosDiasRegex: RegExp[] = [
     /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i, 
@@ -73,7 +81,7 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
     return dayPeriod;
 }
 
-export function checkUser(user: string | undefined) {
+export function checkUser(user: string | undefined): boolean | Error {
     if (!config.userToBeShout) {
         throw new Error(ErrorEnum.noSelectedUser);
     }
