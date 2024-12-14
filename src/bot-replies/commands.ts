@@ -1,4 +1,4 @@
-import { BLOCKED_USERNAME, log } from "../utils/common";
+import { BLOCKED_USERNAME, helpText, log } from "../utils/common";
 import { Bot, Context, InputFile } from "grammy";
 import { getBotState, setBotState } from "../utils/state";
 
@@ -36,7 +36,7 @@ export function runCommands(bot: Bot) {
     // Reacts to /help commands
     bot.command('help', async (ctx: Context) => {
         log.info("Help Command...");
-        await ctx.reply('this is the help command');
+        await ctx.reply(helpText, {parse_mode: "Markdown"});
     });
     bot.command('stop', async (ctx: Context) => {
         log.info("Stop Command...");
@@ -68,6 +68,6 @@ export function runCommands(bot: Bot) {
     bot.command('alechupa', async (ctx: Context) => {
         log.info("Mandando gif de Ale...");
         await ctx.replyWithAnimation(new InputFile("media/ale_chupa.gif"));
-    })
+    });
 
 }
