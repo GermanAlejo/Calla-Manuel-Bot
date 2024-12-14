@@ -8,7 +8,15 @@ import { getBotState, setBotState } from "./utils/state";
 // Create a bot object
 const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
 
-startBot(shutUpBot);
+startBot(shutUpBot)
+.then(() => {
+    log.info("Bot Stopped");
+})
+.catch(err => {
+    log.error(err);
+    log.trace(err);
+    throw new Error()
+});
 
 try {
     //add state middleware
@@ -22,7 +30,7 @@ try {
                 return ctx.reply("Bot activado");
             }
         }
-        await next();
+        return await next();
     });
 
     //add user filter middleware
@@ -30,8 +38,7 @@ try {
         shutUpBot.filter(manuelFilter).on("message", (ctx: Context, next: NextFunction) => {
             if (ctx.from?.username === BLOCKED_USERNAME && ignoreUser) {
                 log.info("Blocking user: " + BLOCKED_USERNAME);
-                ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME);
-                return;
+                return ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME); //Hay que probar esto otra vez
             }
             log.info("No user being ignored...");
             return next();

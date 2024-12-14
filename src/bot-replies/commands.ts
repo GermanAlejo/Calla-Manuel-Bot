@@ -13,7 +13,13 @@ export function runCommands(bot: Bot) {
         { command: "putamadre", description: "Manda un audio y se caga en tu puta madre"},
         { command: "callamanuel", description: "Manda callar al Manuel"},
         { command: "alechupa", description: "El Ale la chupa"}
-    ]);
+    ])
+    .then(() => log.info("commands description set"))
+    .catch((err: Error) => {
+        log.trace(err);
+        log.error(err);
+        throw new Error();
+    });
 
     // Reacts to /start commands
     bot.command('start', async (ctx: Context) => {
