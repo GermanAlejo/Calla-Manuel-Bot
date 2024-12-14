@@ -7,7 +7,7 @@ export const log = new Logger();
 // Save in local var the locked user
 export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
 
-export const ignoreUser: boolean = true;
+export const ignoreUser: boolean = false;
 
 export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
 

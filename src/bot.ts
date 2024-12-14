@@ -3,6 +3,7 @@ import config from './utils/config';
 import { log, ErrorEnum, buenosDiasRegex, TimeComparatorEnum, ignoreUser, BLOCKED_USERNAME, manuelFilter } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "./bot-replies/saluda";
+import { getBotState, setBotState } from "./utils/state";
 
 // Create a bot object
 const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
@@ -10,6 +11,21 @@ const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot t
 startBot(shutUpBot);
 
 try {
+    //add state middleware
+    shutUpBot.use(async (ctx: Context, next: NextFunction) => {
+        if (!getBotState()) {
+            log.info("El bot esta desactivado");
+            if (ctx.message?.text?.startsWith("/") && (ctx.message.text !== '/start')) {
+                return ctx.reply("El bot esta desactivado usa el comando /start para activarlo");
+            } else if (ctx.message?.text?.startsWith("/") && (ctx.message.text === '/start')) {
+                setBotState(true);
+                return ctx.reply("Bot activado");
+            }
+        }
+        await next();
+    });
+
+    //add user filter middleware
     if (BLOCKED_USERNAME) {
         shutUpBot.filter(manuelFilter).on("message", (ctx: Context, next: NextFunction) => {
             if (ctx.from?.username === BLOCKED_USERNAME && ignoreUser) {
@@ -31,7 +47,7 @@ try {
 
 function runBotSalutations(bot: Bot) {
     try {
-        if (buenosDiasRegex.length > 1) {
+        if (buenosDiasRegex.length > 1 && getBotState()) {
             bot.hears(buenosDiasRegex[TimeComparatorEnum.mananaCode], async (ctx: Context) => await buenosDias(ctx));
             bot.hears(buenosDiasRegex[TimeComparatorEnum.tardeCode], async (ctx: Context) => await buenasTardes(ctx));
             bot.hears(buenosDiasRegex[TimeComparatorEnum.nocheCode], async (ctx: Context) => await buenasNoches(ctx));
@@ -56,3 +72,4 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
         throw err;
     }
 }
+
