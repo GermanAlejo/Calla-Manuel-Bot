@@ -12,11 +12,32 @@ export const ignoreUser: boolean = false;
 export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
 
 export const buenosDiasRegex: RegExp[] = [
-    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i, 
-    /\bbuen(?:as|a)\s*(?:tardes)\b/i, 
+    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i,
+    /\bbuen(?:as|a)\s*(?:tardes)\b/i,
     /\bbuen(?:as|a)\s*(?:noches)\b/i,
     /hola/i
 ];
+
+export const helpText = `
+*Bot para callar al Manue* 
+Vaya imbecil que no sabes ni usar un bot... 😒
+
+Aquí tienes una lista de comandos disponibles:
+
+- */start*: Inicia el bot.
+- */stop*: Detiene el bot.
+- */help*: Muestra este mensaje de ayuda.
+- */settings*: Accede a la configuración.
+- */imbeciles*: Llama imbecil a todo el mundo
+- */putamadre*: Se caga en la puta madre
+- */alechupa*: Quieres ver al Ale chupar? 😉
+
+Ademas tengo las siguientes funciones:
+1. Contesto a saludos y buenos dias.
+2. Mando callar al Manuel.
+3. Contare los buenos dias.
+
+`;
 
 export enum SaludosEnum {
     buenosDias = "Buenos Dias",
@@ -25,7 +46,7 @@ export enum SaludosEnum {
 }
 
 //Sustituir por un array de insultos y sacar uno aleatorio
-export enum InsultosEnum{
+export enum InsultosEnum {
     mananaInsulto = "IMBECIL NO ES POR LA MAÑANA",
     tardeInsulto = "IMBECIL NO ES POR LA TARDE",
     nocheInsulto = "ES QUE ERES TONTO NO ES DE NOCHE"
@@ -45,6 +66,8 @@ export enum TimeComparatorEnum {
     mananaTime = 7,
     tardeTime = 12,
     nocheTime = 20,
+    onceNocheTime = 23,
+    mediaNocheTime = 0,
     mananaCode = 0,
     tardeCode = 1,
     nocheCode = 2,
@@ -61,7 +84,7 @@ export enum TimeComparatorEnum {
 export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
     log.info("--isBuenosDiasTime--");
     let dayPeriod: number;
-    if(saludoTime >= TimeComparatorEnum.mananaTime && saludoTime < TimeComparatorEnum.tardeTime) {
+    if (saludoTime >= TimeComparatorEnum.mananaTime && saludoTime < TimeComparatorEnum.tardeTime) {
         //mañana
         log.info("In the morning");
         dayPeriod = TimeComparatorEnum.mananaCode;
@@ -69,7 +92,8 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
         //tarde
         log.info("Es por la tarde");
         dayPeriod = TimeComparatorEnum.tardeCode;
-    } else if (saludoTime >= TimeComparatorEnum.nocheTime && saludoTime < TimeComparatorEnum.mananaTime) {
+    } else if ((saludoTime >= TimeComparatorEnum.nocheTime && saludoTime < TimeComparatorEnum.onceNocheTime) ||
+        (saludoTime >= TimeComparatorEnum.mediaNocheTime && saludoTime < TimeComparatorEnum.mananaTime)) {
         //noche
         log.info("Es de noche");
         dayPeriod = TimeComparatorEnum.nocheCode;
