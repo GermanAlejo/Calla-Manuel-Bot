@@ -1,6 +1,6 @@
 import { Api, Bot, Context, NextFunction, RawApi } from "grammy";
 import config from './utils/config';
-import { log, ErrorEnum, buenosDiasRegex, TimeComparatorEnum, ignoreUser, BLOCKED_USERNAME, manuelFilter } from './utils/common';
+import { log, ErrorEnum, buenosDiasRegex, TimeComparatorEnum, ignoreUser, BLOCKED_USERNAME, manuelFilter, prepareMediaFiles } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "./bot-replies/saluda";
 import { getBotState, setBotState } from "./utils/state";
@@ -9,14 +9,14 @@ import { getBotState, setBotState } from "./utils/state";
 const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
 
 startBot(shutUpBot)
-.then(() => {
-    log.info("Bot Stopped");
-})
-.catch(err => {
-    log.error(err);
-    log.trace(err);
-    throw new Error()
-});
+    .then(() => {
+        log.info("Bot Stopped");
+    })
+    .catch(err => {
+        log.error(err);
+        log.trace(err);
+        throw new Error()
+    });
 
 try {
     //add state middleware
@@ -44,6 +44,8 @@ try {
             return next();
         });
     }
+    
+    prepareMediaFiles();
     runCommands(shutUpBot);
     runBotSalutations(shutUpBot);
 } catch (err) {
@@ -72,6 +74,7 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
         if (bot instanceof Error) {
             throw new Error(ErrorEnum.launchError);
         }
+        setBotState(true);
         log.info("Starting Bot server");
         // Start the bot (using long polling)
         await bot.start();
