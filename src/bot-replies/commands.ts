@@ -9,18 +9,18 @@ export function runCommands(bot: Bot) {
         { command: "help", description: "Show help text" },
         { command: "stop", description: "Stop the bot" },
         { command: "horaespecial", description: "Saber la hora coño" },
-        { command: "settings", description: "Open settings" },
+        //{ command: "settings", description: "Open settings" },
         { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
         { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
         { command: "callamanuel", description: "Manda callar al Manuel" },
         { command: "alechupa", description: "El Ale la chupa" }
     ])
-    .then(() => log.info("commands description set"))
-    .catch((err: Error) => {
-        log.trace(err);
-        log.error(err);
-        throw new Error();
-    });
+        .then(() => log.info("commands description set"))
+        .catch((err: Error) => {
+            log.trace(err);
+            log.error(err);
+            throw new Error();
+        });
 
     // Reacts to /start commands
     bot.command('start', async (ctx: Context) => {
@@ -29,9 +29,8 @@ export function runCommands(bot: Bot) {
         if (!chatId) {
             log.warn("Not a group??");
         } else {
-            scheduleMessage(bot, chatId, 17, 58, "Es la hora coño");
+            scheduleMessage(bot, chatId, "Feliz hora coño");
         }
-
         if (getBotState()) {
             log.info("Bot is already active");
             await ctx.reply('El Manue ya esta siendo callado');
@@ -59,12 +58,12 @@ export function runCommands(bot: Bot) {
     });
     bot.command('horaespecial', async (ctx) => {
         log.info("Es la hora coño?");
-        await ctx.reply('La hora coño es a las 17.58');
+        await ctx.reply('La hora coño es a las 16.58');
     });
-    bot.command('settings', async (ctx: Context) => {
-        log.info("setting command called");
-        await ctx.reply('this is the settings commands');
-    });
+    //bot.command('settings', async (ctx: Context) => {
+    //    log.info("setting command called");
+    //    await ctx.reply('this is the settings commands');
+    //});
     bot.command('imbeciles', async (ctx: Context) => {
         log.info("Sending Audio...");
         const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.imbeciles);

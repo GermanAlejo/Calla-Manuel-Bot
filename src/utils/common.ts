@@ -4,6 +4,7 @@ import { Logger } from "tslog";
 import { getBotState } from './state';
 import * as fs from "fs";
 import * as path from "path";
+import { ErrorEnum } from './enums';
 
 export const log = new Logger();
 
@@ -11,6 +12,9 @@ export const log = new Logger();
 export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
 
 export const ignoreUser: boolean = false;
+
+const horaconoMin: number = 58;
+const horaconoHora: number = 16;
 
 export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
 
@@ -36,6 +40,8 @@ Aquí tienes una lista de comandos disponibles:
 - */settings*: Accede a la configuración.
 - */imbeciles*: Llama imbecil a todo el mundo
 - */putamadre*: Se caga en la puta madre
+- */horaespecial*: Por si se te ha olvidado cuando es la hora coño
+- */callamanuel*: Mandare callar al manuel
 - */alechupa*: Quieres ver al Ale chupar? 😉
 
 Ademas tengo las siguientes funciones:
@@ -59,29 +65,6 @@ export enum AudioNames {
 
 export enum GifNames {
     aleChupa = "ale_chupa"
-}
-
-export enum SaludosEnum {
-    buenosDias = "Buenos Dias",
-    buenasTardes = "Buenas Tardes",
-    buenasNoches = "Buenas Noches"
-}
-
-//Sustituir por un array de insultos y sacar uno aleatorio
-export enum InsultosEnum {
-    mananaInsulto = "IMBECIL NO ES POR LA MAÑANA",
-    tardeInsulto = "IMBECIL NO ES POR LA TARDE",
-    nocheInsulto = "ES QUE ERES TONTO NO ES DE NOCHE"
-}
-
-export enum ErrorEnum {
-    launchError = 'Error Launching Bot',
-    noSelectedUser = 'No User Selected to Taunt',
-    errorReadingUser = 'Error reading/replying to user',
-    errorInTime = 'Error, time not acounted for',
-    errorInBuenosDias = 'Error dando los buenos dias',
-    errorInTardes = "Error en las buenas tardes",
-    errorInNoche = "Error en las buenas noaches"
 }
 
 export enum TimeComparatorEnum {
@@ -127,16 +110,6 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
     return dayPeriod;
 }
 
-export function checkUser(user: string | undefined): boolean | Error {
-    if (!config.userToBeShout) {
-        throw new Error(ErrorEnum.noSelectedUser);
-    }
-    if (user !== config.userToBeShout) {
-        return false;
-    }
-    return true;
-}
-
 export function prepareMediaFiles() {
     if (getBotState()) {
         const mediaFolderPath = "media";
@@ -176,12 +149,13 @@ export function prepareMediaFiles() {
     }
 }
 
-export function scheduleMessage(bot: Bot, chatId: number, targetHour: number, targetMinute: number, message: string) {
+export function scheduleMessage(bot: Bot, chatId: number, message: string) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
     log.info("Setting hora coño...");
-    targetTime.setHours(targetHour , targetMinute, 0, 0);
+
+    targetTime.setHours(horaconoHora, horaconoMin, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
     if (targetTime.getTime() <= now.getTime()) {
