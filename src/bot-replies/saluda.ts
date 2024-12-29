@@ -123,7 +123,7 @@ async function updateSaludos(username: string) {
             user.greetingCount++;
             await writeSquadData(squadData);
         }
-        log.error("error registrando saludo");
+        log.error("Error registrando saludo");
         return;
     }
 }

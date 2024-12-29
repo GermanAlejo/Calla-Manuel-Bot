@@ -9,6 +9,7 @@ export interface ChatConfig {
     adminUsers: string[];
     chatId: number;
     chatMembers: MyChatMember[];
+    onlyAdminCommands: boolean;
 }
 
 //// Ejemplo de uso:

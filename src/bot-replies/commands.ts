@@ -1,15 +1,14 @@
 import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage } from "../utils/common";
 import { Bot, Context } from "grammy";
 import { getBotState, setBotState } from "../utils/state";
+import { checkAdminMiddleware } from "../middlewares/middleware";
 
 export function runCommands(bot: Bot) {
-
     bot.api.setMyCommands([
         { command: "start", description: "Start the bot" },
         { command: "help", description: "Show help text" },
         { command: "stop", description: "Stop the bot" },
         { command: "horaespecial", description: "Saber la hora coño" },
-        //{ command: "settings", description: "Open settings" },
         { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
         { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
         { command: "callamanuel", description: "Manda callar al Manuel" },
@@ -23,7 +22,7 @@ export function runCommands(bot: Bot) {
         });
 
     // Reacts to /start commands
-    bot.command('start', async (ctx: Context) => {
+    bot.command('start', checkAdminMiddleware, async (ctx: Context) => {
         log.info("Start Command...");
         const chatId: number | undefined = ctx.chat?.id;
         if (!chatId) {
@@ -45,7 +44,7 @@ export function runCommands(bot: Bot) {
         log.info("Help Command...");
         await ctx.reply(helpText, { parse_mode: "Markdown" });
     });
-    bot.command('stop', async (ctx: Context) => {
+    bot.command('stop', checkAdminMiddleware, async (ctx: Context) => {
         log.info("Stop Command...");
         if (getBotState()) {
             log.info("Stopping bot...");
@@ -113,7 +112,7 @@ async function callaManuel(ctx: Context) {
     } else if (randomNumber == 2) {
         reply = voiceFiles.find(v => v.key === AudioNames.callaManuel2);
     }
-
+    
     if (!reply) {
         log.error("Error con contexto de audios.");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);

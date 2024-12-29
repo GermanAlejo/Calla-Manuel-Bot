@@ -1,7 +1,9 @@
 {
   "chatId": -1001929236095,
   "blockedUser": null,
-  "adminUsers": [],
+  "isUserBlocked": false,
+  "commandOnlyAdmins": true,
+  "adminUsers": ["VengadorAnal", "ElCrocanti"],
   "specialHour": "16:58",
   "chatMembers": [
     {

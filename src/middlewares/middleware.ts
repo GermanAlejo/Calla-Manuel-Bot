@@ -6,12 +6,6 @@ import { ErrorEnum } from "../utils/enums";
 import { inizializeSquadData, readSquadData, updateJson, writeSquadData } from "./jsonHandler";
 import { ChatConfig, MyChatMember } from "../types/squadTypes";
 
-//export const checkIsAdmin: MiddlewareFn<Context> = async (ctx: Context, next: NextFunction) => {
-//    if(ctx.from?.username === "") {
-//        
-//    }
-//};
-
 export const initializeBotDataMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
     const chatID: number | undefined = ctx.chat?.id;
     if (chatID) {
@@ -36,7 +30,6 @@ export const botStatusMiddleware: MiddlewareFn<Context> = async (ctx: Context, n
 };
 
 export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
-    //add user filter middleware
     if (ctx.from?.username === BLOCKED_USERNAME && ignoreUser) {
         log.info("Blocking user: " + BLOCKED_USERNAME);
         return ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME); //Hay que probar esto otra vez
@@ -83,6 +76,18 @@ export const userStatusMiddleware: Middleware<Context> = async (ctx: Context, ne
     }
     return next();
 };
+
+export const checkAdminMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
+    const data = await readSquadData();
+    const caller = ctx.from?.username;
+    if(data.adminUsers && caller && data.onlyAdminCommands) {
+        if(!data.adminUsers.includes(caller)) {
+            log.info("This user has not admin rights");
+            return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
+        }
+    }
+    return next();
+}
 
 async function saveNewUser(username: string | undefined) {
     if (username) {

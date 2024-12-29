@@ -22,6 +22,7 @@ export async function inizializeSquadData(chatId: number): Promise<void> {
             chatId: chatId,
             chatMembers:  [],
             ignoreUser: false,
+            onlyAdminCommands: true
           };
         fs.writeFileSync(filePath, JSON.stringify(initialData, null, 2));
     }

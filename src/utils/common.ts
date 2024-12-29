@@ -37,12 +37,13 @@ Aquí tienes una lista de comandos disponibles:
 - */start*: Inicia el bot.
 - */stop*: Detiene el bot.
 - */help*: Muestra este mensaje de ayuda.
-- */settings*: Accede a la configuración.
 - */imbeciles*: Llama imbecil a todo el mundo
 - */putamadre*: Se caga en la puta madre
 - */horaespecial*: Por si se te ha olvidado cuando es la hora coño
 - */callamanuel*: Mandare callar al manuel
 - */alechupa*: Quieres ver al Ale chupar? 😉
+
+Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 
 Ademas tengo las siguientes funciones:
 1. Contesto a saludos y buenos dias.
