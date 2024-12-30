@@ -1,5 +1,5 @@
 import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage } from "../utils/common";
-import { Bot, Context } from "grammy";
+import { Bot, Context, NextFunction } from "grammy";
 import { getBotState, setBotState } from "../utils/state";
 import { checkAdminMiddleware } from "../middlewares/middleware";
 
@@ -14,19 +14,20 @@ export function runCommands(bot: Bot) {
         { command: "callamanuel", description: "Manda callar al Manuel" },
         { command: "alechupa", description: "El Ale la chupa" }
     ])
-        .then(() => log.info("commands description set"))
-        .catch((err: Error) => {
-            log.trace(err);
-            log.error(err);
-            throw new Error();
-        });
+    .then(() => log.info("commands description set"))
+    .catch((err: Error) => {
+        log.trace(err);
+        log.error(err);
+        throw new Error();
+    });
 
     // Reacts to /start commands
-    bot.command('start', checkAdminMiddleware, async (ctx: Context) => {
+    bot.command('start', checkAdminMiddleware, async (ctx: Context, next: NextFunction) => {
         log.info("Start Command...");
         const chatId: number | undefined = ctx.chat?.id;
         if (!chatId) {
             log.warn("Not a group??");
+            return next();
         } else {
             scheduleMessage(bot, chatId, "Feliz hora coño");
         }
@@ -38,6 +39,7 @@ export function runCommands(bot: Bot) {
             setBotState(true)
             await ctx.reply('Ahora mandaremos callar al Manue...');
         }
+        return next();
     });
     // Reacts to /help commands
     bot.command('help', async (ctx: Context) => {
@@ -59,10 +61,6 @@ export function runCommands(bot: Bot) {
         log.info("Es la hora coño?");
         await ctx.reply('La hora coño es a las 16.58');
     });
-    //bot.command('settings', async (ctx: Context) => {
-    //    log.info("setting command called");
-    //    await ctx.reply('this is the settings commands');
-    //});
     bot.command('imbeciles', async (ctx: Context) => {
         log.info("Sending Audio...");
         const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.imbeciles);
@@ -112,7 +110,7 @@ async function callaManuel(ctx: Context) {
     } else if (randomNumber == 2) {
         reply = voiceFiles.find(v => v.key === AudioNames.callaManuel2);
     }
-    
+
     if (!reply) {
         log.error("Error con contexto de audios.");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);

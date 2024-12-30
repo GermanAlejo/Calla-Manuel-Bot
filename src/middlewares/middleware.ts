@@ -60,17 +60,17 @@ export const userStatusMiddleware: Middleware<Context> = async (ctx: Context, ne
     if (ctx.chat?.type === "group") {
         // Verificamos si el mensaje fue enviado por un usuario nuevo
         if (ctx.message?.new_chat_members) {
-            ctx.message.new_chat_members.forEach((newUser) => {
+            ctx.message.new_chat_members.forEach(async (newUser) => {
                 log.info(`${newUser.username} ha entrado al grupo.`);
-                saveNewUser(newUser.username);
-                return ctx.reply(`¡Vaya otro imbecil, @${newUser.username}!`);
+                await saveNewUser(newUser.username);
+                await ctx.reply(`¡Vaya otro imbecil, @${newUser.username}!`);
             });
         }
         // Detectamos cuando un usuario sale
         if (ctx.message?.left_chat_member) {
             const leftUser = ctx.message.left_chat_member;
             log.info(`${leftUser.username} ha dejado el grupo.`);
-            delUser(leftUser.username);
+            await delUser(leftUser.username);
             return ctx.reply(`Adiós @${leftUser.username}, vete a tomar por culo`);
         }
     }
@@ -79,10 +79,15 @@ export const userStatusMiddleware: Middleware<Context> = async (ctx: Context, ne
 
 export const checkAdminMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
     const data = await readSquadData();
-    const caller = ctx.from?.username;
-    if(data.adminUsers && caller && data.onlyAdminCommands) {
-        if(!data.adminUsers.includes(caller)) {
-            log.info("This user has not admin rights");
+    const admins: string[] = data.adminUsers;
+    const isAdminActive: boolean = data.onlyAdminCommands;
+    const caller: string | undefined = ctx.from?.username;
+    if(!isAdminActive) {
+        return next();
+    }
+    if(admins && caller) {
+        if(!admins.includes(caller)) {
+            log.info("This user has no admin rights");
             return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
         }
     }

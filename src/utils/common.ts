@@ -167,9 +167,9 @@ export function scheduleMessage(bot: Bot, chatId: number, message: string) {
     log.info("Setting a delay of: " + delay);
 
     // Usa setTimeout para programar el primer mensaje
-    setTimeout(() => {
+    setTimeout(async () => {
         // Envía el mensaje
-        bot.api.sendMessage(chatId, message);
+        await bot.api.sendMessage(chatId, message);
         log.info("Sending Message");
         // Luego, usa setInterval para repetirlo diariamente
         setInterval(() => {
