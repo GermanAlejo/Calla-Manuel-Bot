@@ -3,7 +3,7 @@ import config from './utils/config';
 import { log, prepareMediaFiles } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
 import { setBotState } from "./utils/state";
-import { botStatusMiddleware, initializeBotDataMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
+import { botStatusMiddleware, initializeBotDataMiddleware, requestRateLimitMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
 import { ErrorEnum } from "./utils/enums";
 
 // Create a bot object
@@ -16,7 +16,7 @@ startBot(shutUpBot)
     .catch(err => {
         log.error(err);
         log.trace(err);
-        throw new Error()
+        throw new Error();
     });
 
 try {
@@ -36,6 +36,15 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
         }
         setBotState(true);
         log.info("Starting Bot server");
+        const rateLimitMiddleware = requestRateLimitMiddleware({
+            limit: 8, // Máximo 3 solicitudes
+            timeWindow: 5000, // Ventana de tiempo de 5 segundos
+            onLimitExceeded: (ctx: Context) => {
+                log.warn("Solicitudes maximas alcanzadas!");
+                ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.")
+            }
+        });
+        bot.use(rateLimitMiddleware);
         bot.use(botStatusMiddleware);
         bot.use(userFilterMiddleware);
         bot.use(initializeBotDataMiddleware);

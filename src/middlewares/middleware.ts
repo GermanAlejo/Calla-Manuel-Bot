@@ -4,7 +4,7 @@ import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-repli
 import { buenosDiasRegex, TimeComparatorEnum, log, BLOCKED_USERNAME, ignoreUser } from "../utils/common";
 import { ErrorEnum } from "../utils/enums";
 import { inizializeSquadData, readSquadData, updateJson, writeSquadData } from "./jsonHandler";
-import { ChatConfig, MyChatMember } from "../types/squadTypes";
+import { ChatConfig, MyChatMember, RateLimitOptions } from "../types/squadTypes";
 
 export const initializeBotDataMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
     const chatID: number | undefined = ctx.chat?.id;
@@ -82,16 +82,61 @@ export const checkAdminMiddleware: Middleware<Context> = async (ctx: Context, ne
     const admins: string[] = data.adminUsers;
     const isAdminActive: boolean = data.onlyAdminCommands;
     const caller: string | undefined = ctx.from?.username;
-    if(!isAdminActive) {
+    if (!isAdminActive) {
         return next();
     }
-    if(admins && caller) {
-        if(!admins.includes(caller)) {
+    if (admins && caller) {
+        if (!admins.includes(caller)) {
             log.info("This user has no admin rights");
             return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
         }
     }
     return next();
+}
+
+export const requestRateLimitMiddleware = (options: RateLimitOptions): MiddlewareFn => {
+    const userRequests: Record<number, { count: number; lastRequest: number }> = {};
+    log.info("Executing requests Middleware...");
+
+    return async (ctx: Context, next: NextFunction) => {
+        const isCommand = ctx.message?.text?.charAt(0);
+        if(isCommand !== '/') {
+            log.warn("The request is not a command!");
+            return next();
+        }
+        const userId = ctx.from?.id;
+        if (!userId) {
+            log.error("The user does not exists");
+            return next();
+        }
+
+        const now = Date.now();
+        const userData = userRequests[userId] || { count: 0, lastRequest: 0 };
+
+        // Reiniciar contador si ha pasado la ventana de tiempo
+        if (now - userData.lastRequest > options.timeWindow) {
+            log.info("The user is in the windows time, reseting time window");
+            userRequests[userId] = { count: 1, lastRequest: now };
+            return next();
+        }
+
+        // Incrementar contador y validar límites
+        userData.count += 1;
+        userData.lastRequest = now;
+
+        if (userData.count > options.limit) {
+            if (options.onLimitExceeded) {
+                log.info("awaiting limit exceed callback...");
+                await options.onLimitExceeded(ctx);
+            } else {
+                log.warn("Limit of requests reached by user");
+                await ctx.reply("⚠️ Has alcanzado el límite de solicitudes. Intenta nuevamente más tarde.");
+            }
+            return;
+        }
+
+        return next();
+    };
 }
 
 async function saveNewUser(username: string | undefined) {

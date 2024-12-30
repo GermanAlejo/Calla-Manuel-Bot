@@ -1,12 +1,15 @@
 import { Bot, Context, InputFile } from 'grammy';
 import config from './config';
-import { Logger } from "tslog";
+import { ILogObj, Logger } from "tslog";
 import { getBotState } from './state';
 import * as fs from "fs";
 import * as path from "path";
 import { ErrorEnum } from './enums';
 
-export const log = new Logger();
+export const log: Logger<ILogObj> = new Logger({
+    type: "pretty",
+    prettyLogTimeZone: "local"
+});
 
 // Save in local var the locked user
 export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
