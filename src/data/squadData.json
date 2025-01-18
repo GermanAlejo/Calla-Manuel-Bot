@@ -3,13 +3,17 @@
     "adminUsers": [
       "VengadorAnal"
     ],
-    "blockedUser": "",
-    "isUserBlocked": false,
+    "blockedUser": "Kasspa",
+    "isUserBlocked": true,
     "commandOnlyAdmins": true,
     "specialHour": "16.58",
     "chatMembers": [
       {
         "username": "VengadorAnal",
+        "greetingCount": 0
+      },
+      {
+        "username": "Kasspa",
         "greetingCount": 0
       }
     ]

@@ -1,7 +1,7 @@
 import { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 import { getBotState, setBotState } from "../utils/state";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
-import { buenosDiasRegex, TimeComparatorEnum, log, BLOCKED_USERNAME, ignoreUser } from "../utils/common";
+import { buenosDiasRegex, TimeComparatorEnum, log, BLOCKED_USERNAME, isUserIgnore, loadIgnoreUserName } from "../utils/common";
 import { ErrorEnum } from "../utils/enums";
 import { loadGroupData, loadGroupDataStore, saveGroupData, saveGroupDataStore, updateGroupData } from "./jsonHandler";
 import { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
@@ -24,7 +24,7 @@ export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, nex
                 chatMembers: []
             }
             const myStore: GroupDataStore = await loadGroupDataStore();
-            if(!myStore[chatGroup.id.toString()]) {
+            if (!myStore[chatGroup.id.toString()]) {
                 myStore[chatGroup.id.toString()] = newGroupData;
                 await saveGroupDataStore(myStore);
             }
@@ -49,11 +49,15 @@ export const botStatusMiddleware: MiddlewareFn<Context> = async (ctx: Context, n
 
 export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
     log.info("User filter middleware");
-    if (ctx.from?.username === BLOCKED_USERNAME && ignoreUser) {
-        log.info("Blocking user: " + BLOCKED_USERNAME);
-        return ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME); //Hay que probar esto otra vez
+    const chatId: string | undefined = ctx.chat?.id.toString();
+    if (chatId) {
+        const userIgnored: string | undefined = await loadIgnoreUserName(chatId);
+        if (ctx.from?.username === userIgnored && await isUserIgnore(chatId)) {
+            log.info("Blocking user: " + BLOCKED_USERNAME);
+            return ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME); //Hay que probar esto otra vez
+        }
+        log.info("No user being ignored...");
     }
-    log.info("No user being ignored...");
     return next();
 };
 

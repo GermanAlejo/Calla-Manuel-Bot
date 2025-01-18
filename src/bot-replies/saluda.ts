@@ -87,7 +87,7 @@ export async function buenosDias(ctx: Context) {
     try {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
-            const chatId: string | undefined = await ctx.chatId?.toString();
+            const chatId: string | undefined = ctx.chatId?.toString();
             if (userName && chatId) {
                 const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
                 const isTime: number = +isBuenosDiasTime(currentTime);
@@ -116,7 +116,7 @@ export async function buenosDias(ctx: Context) {
 }
 
 async function updateSaludos(username: string, chatId: string) {
-    if (username) {
+    if (username && chatId) {
         const squadData: GroupData | undefined = await loadGroupData(chatId);
         if(squadData) {
             const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);

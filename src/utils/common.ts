@@ -5,6 +5,7 @@ import { getBotState } from './state';
 import * as fs from "fs";
 import * as path from "path";
 import { ErrorEnum } from './enums';
+import { loadGroupDataStore } from '../middlewares/jsonHandler';
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
@@ -13,8 +14,6 @@ export const log: Logger<ILogObj> = new Logger({
 
 // Save in local var the locked user
 export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
-
-export const ignoreUser: boolean = false;
 
 const horaconoMin: number = 58;
 const horaconoHora: number = 16;
@@ -81,6 +80,16 @@ export enum TimeComparatorEnum {
     tardeCode = 1,
     nocheCode = 2,
     holaCode = 3
+}
+
+export async function isUserIgnore(chatId: string): Promise<boolean> {
+    const data = await loadGroupDataStore();
+    return data[chatId].isUserBlocked;
+}
+
+export async function loadIgnoreUserName(chatId: string): Promise<string | undefined> {
+    const data = await loadGroupDataStore();
+    return data[chatId].blockedUser;
 }
 
 /**
