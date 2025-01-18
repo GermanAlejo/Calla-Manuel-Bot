@@ -1,38 +1,19 @@
-import { log } from "../utils/common";
-import { ChatConfig } from "../types/squadTypes";
 import * as fs from "fs";
-import { access } from "fs/promises";
+import { GroupData, GroupDataStore } from "../types/squadTypes";
+import { log } from "../utils/common";
 
-const filePath: string = "src/data/squadData.json";
+const dataFile: string = "src/data/squadData.json";
 
-async function checkDataExists(): Promise<boolean> {
-    try {
-        await access(filePath); // Si no lanza error, el archivo existe
-        return true;
-    } catch {
-        return false; // Si lanza error, el archivo no existe
-    }
-}
-
-export async function inizializeSquadData(chatId: number): Promise<void> {
-    if(!checkDataExists()) {
-        const initialData: ChatConfig = {
-            adminUsers: [],
-            blockedUser: undefined,
-            chatId: chatId,
-            chatMembers:  [],
-            ignoreUser: false,
-            onlyAdminCommands: true
-          };
-        fs.writeFileSync(filePath, JSON.stringify(initialData, null, 2));
-    }
-}
-
-export async function readSquadData(): Promise<ChatConfig> {
+export async function loadGroupData(chatId: string): Promise<GroupData | undefined> {
     try {
         log.info("Reading JSON...");
-        const data = fs.readFileSync(filePath, "utf8");
-        return JSON.parse(data) as ChatConfig;
+        const dataStore = await loadGroupDataStore();
+        if (dataStore[chatId]) {
+            return dataStore[chatId];
+        } else {
+            log.warn(`Group data for chatId: ${chatId} not found.`);
+            return undefined;
+        }
     } catch (err) {
         log.error("Error reading JSON");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -40,27 +21,67 @@ export async function readSquadData(): Promise<ChatConfig> {
     }
 }
 
-export async function writeSquadData(chatData: ChatConfig): Promise<void> {
+export async function saveGroupData(chatId: string, data: GroupData): Promise<void> {
     try {
-        log.info("Writting in JSON...");
-        fs.writeFileSync(filePath, JSON.stringify(chatData, null, 2));
+        log.info("Writting JSON...");
+        const dataStore = await loadGroupDataStore(); // Load the existing data store
+        dataStore[chatId] = data; // Update or add the group data
+        await saveGroupDataStore(dataStore); // Save the updated data store
     } catch (err) {
+        log.error("Error reading JSON");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        log.error("Error writting in json");
         throw err;
     }
 }
 
-export async function updateJson<ChatConfig>(changes: Partial<ChatConfig>): Promise<void> {
+export async function loadGroupDataStore(): Promise<GroupDataStore> {
     try {
-        log.info("Updatting in JSON...");
-        const currentData = await readSquadData(); // Leer datos actuales
-        const updatedData = { ...currentData, ...changes }; // Mezclar los cambios con los datos actuales
-        await writeSquadData(updatedData); // Escribir los datos actualizados
+        log.info("Reading JSON...");
+        if (!fs.existsSync(dataFile)) {
+            log.warn("File does not exists creating new file");
+            fs.writeFileSync(dataFile, JSON.stringify({}));
+        }
+        log.info("File found, reading file...");
+        const data = fs.readFileSync(dataFile, 'utf8');
+        return JSON.parse(data) as GroupDataStore; // Cast explícito al tipo
     } catch (err) {
+        log.error("Error reading JSON");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        log.error("Error updating in json");
         throw err;
     }
 }
 
+export async function saveGroupDataStore(data: GroupDataStore): Promise<void> {
+    try {
+        log.info("Writting JSON...");
+        fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
+    } catch (err) {
+        log.error("Error reading JSON");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw err;
+    }
+}
+
+export async function updateGroupData(chatId: string, updates: Partial<GroupData>): Promise<void> {
+    try {
+        log.info("Updating data from chat: " + chatId);
+        const data = await loadGroupDataStore();
+        if (!data[chatId]) {
+            //create the chat if it does not exists maybe move this to different function
+            data[chatId] = {
+                blockedUser: undefined,
+                isUserBlocked: false,
+                commandOnlyAdmins: true,
+                adminUsers: [],
+                specialHour: undefined,
+                chatMembers: []
+            };
+        }
+        data[chatId] = { ...data[chatId], ...updates };
+        await saveGroupDataStore(data);
+    } catch (err) {
+        log.error("Error reading JSON");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw err;
+    }
+}

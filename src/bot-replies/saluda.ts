@@ -3,8 +3,8 @@ import { isBuenosDiasTime, log, TimeComparatorEnum } from "../utils/common";
 import { Context } from "grammy";
 import { getBotState } from "../utils/state";
 import { ErrorEnum, SaludosEnum, InsultosEnum } from "../utils/enums";
-import { ChatConfig, MyChatMember } from "../types/squadTypes";
-import { readSquadData, writeSquadData } from "../middlewares/jsonHandler";
+import { GroupData, MyChatMember } from "../types/squadTypes";
+import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 
 export async function paTiMiCola(ctx: Context) {
     try {
@@ -87,11 +87,12 @@ export async function buenosDias(ctx: Context) {
     try {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
-            if (userName) {
+            const chatId: string | undefined = await ctx.chatId?.toString();
+            if (userName && chatId) {
                 const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
                 const isTime: number = +isBuenosDiasTime(currentTime);
                 if (isTime == TimeComparatorEnum.mananaCode) {
-                    await updateSaludos(userName);
+                    await updateSaludos(userName, chatId);
                     await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
                     await ctx.react("❤‍🔥");
                 } else {
@@ -114,16 +115,18 @@ export async function buenosDias(ctx: Context) {
     }
 }
 
-async function updateSaludos(username: string) {
+async function updateSaludos(username: string, chatId: string) {
     if (username) {
-        const squadData: ChatConfig = await readSquadData();
-        const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);
-        if (user && user.greetingCount >= 0) {
-            log.info("Saludo registrado");
-            user.greetingCount++;
-            await writeSquadData(squadData);
+        const squadData: GroupData | undefined = await loadGroupData(chatId);
+        if(squadData) {
+            const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);
+            if (user && user.greetingCount >= 0) {
+                log.info("Saludo registrado");
+                user.greetingCount++;
+                return await saveGroupData(chatId, squadData);
+            }
+            log.error("Error registrando saludo");
+            return;
         }
-        log.error("Error registrando saludo");
-        return;
     }
 }

@@ -1,18 +1,36 @@
 {
-  "chatId": -1001929236095,
-  "blockedUser": null,
-  "isUserBlocked": false,
-  "commandOnlyAdmins": true,
-  "adminUsers": ["VengadorAnal", "ElCrocanti"],
-  "specialHour": "16:58",
-  "chatMembers": [
-    {
-      "username": "VengadorAnal",
-      "greetingCount": 0
-    },
-    {
-      "username": "ElCrocanti",
-      "greetingCount": 0
-    }
-  ]
+  "-4784776214": {
+    "adminUsers": [
+      "VengadorAnal"
+    ],
+    "blockedUser": "",
+    "isUserBlocked": false,
+    "commandOnlyAdmins": true,
+    "specialHour": "16.58",
+    "chatMembers": [
+      {
+        "username": "VengadorAnal",
+        "greetingCount": 0
+      }
+    ]
+  },
+  "-1001929236095": {
+    "adminUsers": [
+      "VengadorAnal"
+    ],
+    "blockedUser": "",
+    "isUserBlocked": false,
+    "commandOnlyAdmins": true,
+    "specialHour": "16.58",
+    "chatMembers": [
+      {
+        "username": "VengadorAnal",
+        "greetingCount": 0
+      },
+      {
+        "username": "ElCrocanti",
+        "greetingCount": 0
+      }
+    ]
+  }
 }

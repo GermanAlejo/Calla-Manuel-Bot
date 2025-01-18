@@ -3,7 +3,7 @@ import config from './utils/config';
 import { log, prepareMediaFiles } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
 import { setBotState } from "./utils/state";
-import { botStatusMiddleware, initializeBotDataMiddleware, requestRateLimitMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
+import { botStatusMiddleware, joinGroupMiddleware, requestRateLimitMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
 import { ErrorEnum } from "./utils/enums";
 
 // Create a bot object
@@ -47,8 +47,8 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
         bot.use(rateLimitMiddleware);
         bot.use(botStatusMiddleware);
         bot.use(userFilterMiddleware);
-        bot.use(initializeBotDataMiddleware);
         bot.on('chat_member', userStatusMiddleware);
+        bot.on('my_chat_member', joinGroupMiddleware)
         bot.on('message', userDetectedMiddleware);
         // Start the bot (using long polling)
         await bot.start();

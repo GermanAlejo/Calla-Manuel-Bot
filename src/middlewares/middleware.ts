@@ -3,20 +3,38 @@ import { getBotState, setBotState } from "../utils/state";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
 import { buenosDiasRegex, TimeComparatorEnum, log, BLOCKED_USERNAME, ignoreUser } from "../utils/common";
 import { ErrorEnum } from "../utils/enums";
-import { inizializeSquadData, readSquadData, updateJson, writeSquadData } from "./jsonHandler";
-import { ChatConfig, MyChatMember, RateLimitOptions } from "../types/squadTypes";
+import { loadGroupData, loadGroupDataStore, saveGroupData, saveGroupDataStore, updateGroupData } from "./jsonHandler";
+import { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
 
-export const initializeBotDataMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
-    const chatID: number | undefined = ctx.chat?.id;
-    if (chatID) {
-        log.info("ChatId detected: " + chatID);
-        await inizializeSquadData(chatID);
-        return next();
+// la funcion guarda solo 1 grupo sobreescribiendo los que ya han sido gruardados
+export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
+
+    const chatGroup = ctx.chat;
+    const myChatMember = ctx.myChatMember;
+    if (chatGroup && myChatMember) {
+        if (myChatMember?.new_chat_member.status === 'member') {
+            log.info("Bot joined a new group with id: " + chatGroup?.id);
+            log.info("Nueva peticion de chat");
+            const newGroupData: GroupData = {
+                adminUsers: [],
+                blockedUser: "",
+                isUserBlocked: false,
+                commandOnlyAdmins: true,
+                specialHour: "16.58",
+                chatMembers: []
+            }
+            const myStore: GroupDataStore = await loadGroupDataStore();
+            if(!myStore[chatGroup.id.toString()]) {
+                myStore[chatGroup.id.toString()] = newGroupData;
+                await saveGroupDataStore(myStore);
+            }
+        }
     }
     return next();
 }
 
 export const botStatusMiddleware: MiddlewareFn<Context> = async (ctx: Context, next: NextFunction) => {
+    log.info("Bot status middleware");
     if (!getBotState()) {
         log.info("El bot esta desactivado");
         if (ctx.message?.text?.startsWith("/") && (ctx.message.text !== '/start')) {
@@ -30,6 +48,7 @@ export const botStatusMiddleware: MiddlewareFn<Context> = async (ctx: Context, n
 };
 
 export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
+    log.info("User filter middleware");
     if (ctx.from?.username === BLOCKED_USERNAME && ignoreUser) {
         log.info("Blocking user: " + BLOCKED_USERNAME);
         return ctx.reply("CALLATE MANUEL @" + BLOCKED_USERNAME); //Hay que probar esto otra vez
@@ -39,57 +58,73 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
 };
 
 export const userDetectedMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
+    log.info("User detected middleware");
     const username = ctx.from?.username || ctx.from?.first_name;
-    if (username) {
-        const squadData: ChatConfig = await readSquadData();
-        const userExists = squadData.chatMembers.some((m: MyChatMember) => m.username === username);
-        if (!userExists) {
-            log.info("User detected");
-            const newMember: MyChatMember = {
-                username: username,
-                greetingCount: 0
+    const chatId = ctx.chatId?.toString();
+    if (username && chatId) {
+        const data: GroupDataStore = await loadGroupDataStore();
+        const chatData: GroupData = data[chatId];
+        if (chatData) {
+            const userExists = chatData.chatMembers.some((m: MyChatMember) => m.username === username);
+            if (!userExists) {
+                log.info("User detected");
+                const newMember: MyChatMember = {
+                    username: username,
+                    greetingCount: 0
+                }
+                chatData.chatMembers.push(newMember);
+                await updateGroupData(chatId, chatData);
             }
-            squadData.chatMembers.push(newMember);
-            await writeSquadData(squadData);
         }
         return next();
     }
 };
 
 export const userStatusMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
+    log.info("User status middleware");
     if (ctx.chat?.type === "group") {
-        // Verificamos si el mensaje fue enviado por un usuario nuevo
-        if (ctx.message?.new_chat_members) {
-            ctx.message.new_chat_members.forEach(async (newUser) => {
-                log.info(`${newUser.username} ha entrado al grupo.`);
-                await saveNewUser(newUser.username);
-                await ctx.reply(`¡Vaya otro imbecil, @${newUser.username}!`);
-            });
-        }
-        // Detectamos cuando un usuario sale
-        if (ctx.message?.left_chat_member) {
-            const leftUser = ctx.message.left_chat_member;
-            log.info(`${leftUser.username} ha dejado el grupo.`);
-            await delUser(leftUser.username);
-            return ctx.reply(`Adiós @${leftUser.username}, vete a tomar por culo`);
+        const chatId: string | undefined = ctx.chatId?.toString();
+        if (chatId) {
+            // Verificamos si el mensaje fue enviado por un usuario nuevo
+            if (ctx.message?.new_chat_members) {
+                ctx.message.new_chat_members.forEach(async (newUser) => {
+                    log.info(`${newUser.username} ha entrado al grupo.`);
+                    await saveNewUser(newUser.username, chatId);
+                    await ctx.reply(`¡Vaya otro imbecil, @${newUser.username}!`);
+                });
+            }
+            // Detectamos cuando un usuario sale
+            if (ctx.message?.left_chat_member) {
+                const leftUser = ctx.message.left_chat_member;
+                log.info(`${leftUser.username} ha dejado el grupo.`);
+                await delUser(leftUser.username, chatId);
+                return ctx.reply(`Adiós @${leftUser.username}, vete a tomar por culo`);
+            }
         }
     }
     return next();
 };
 
 export const checkAdminMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
-    const data = await readSquadData();
-    const admins: string[] = data.adminUsers;
-    const isAdminActive: boolean = data.onlyAdminCommands;
-    const caller: string | undefined = ctx.from?.username;
-    if (!isAdminActive) {
-        return next();
-    }
-    if (admins && caller) {
-        if (!admins.includes(caller)) {
-            log.info("This user has no admin rights");
-            return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
+    const chatId: string | undefined = ctx.chatId?.toString();
+    if (chatId) {
+        const data: GroupData | undefined = await loadGroupData(chatId);
+        if (data) {
+            const admins: string[] = data.adminUsers;
+            const isAdminActive: boolean = data.commandOnlyAdmins;
+            const caller: string | undefined = ctx.from?.username;
+            if (!isAdminActive) {
+                return next();
+            }
+            if (admins && caller) {
+                if (!admins.includes(caller)) {
+                    log.info("This user has no admin rights");
+                    return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
+                }
+            }
         }
+    } else {
+        log.error("Chat ID not found");
     }
     return next();
 }
@@ -100,7 +135,7 @@ export const requestRateLimitMiddleware = (options: RateLimitOptions): Middlewar
 
     return async (ctx: Context, next: NextFunction) => {
         const isCommand = ctx.message?.text?.charAt(0);
-        if(isCommand !== '/') {
+        if (isCommand !== '/') {
             log.warn("The request is not a command!");
             return next();
         }
@@ -139,26 +174,30 @@ export const requestRateLimitMiddleware = (options: RateLimitOptions): Middlewar
     };
 }
 
-async function saveNewUser(username: string | undefined) {
+async function saveNewUser(username: string | undefined, chatId: string) {
     if (username) {
-        const squadData: ChatConfig = await readSquadData();
-        squadData.chatMembers.forEach(member => {
-            if (member.username === username) return;
-        });
-        const newMember: MyChatMember = {
-            username: username,
-            greetingCount: 0
+        const squadData: GroupData | undefined = await loadGroupData(chatId);
+        if (squadData) {
+            squadData.chatMembers.forEach(member => {
+                if (member.username === username) return;
+            });
+            const newMember: MyChatMember = {
+                username: username,
+                greetingCount: 0
+            }
+            squadData.chatMembers.push(newMember);
+            await saveGroupData(chatId, squadData);
         }
-        squadData.chatMembers.push(newMember);
-        await writeSquadData(squadData);
     }
 }
 
-async function delUser(username: string | undefined) {
+async function delUser(username: string | undefined, chatId: string) {
     if (username) {
-        const squadData: ChatConfig = await readSquadData();
-        const newUserList = squadData.chatMembers.filter(member => member.username !== username);
-        await updateJson({ chatMembers: newUserList });
+        const squadData: GroupData | undefined = await loadGroupData(chatId);
+        if (squadData) {
+            const newUserList = squadData.chatMembers.filter(member => member.username !== username);
+            await updateGroupData(chatId, { chatMembers: newUserList });
+        }
     }
 }
 
