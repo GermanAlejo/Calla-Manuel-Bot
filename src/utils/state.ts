@@ -1,4 +1,3 @@
-
 let isBotActive = true;
 
 export function setBotState(newState: boolean) {

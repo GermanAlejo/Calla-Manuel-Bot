@@ -1,7 +1,10 @@
 import { ChatMember } from "grammy/types";
-import { ErrorEnum, checkUser, isBuenosDiasTime, SaludosEnum, InsultosEnum, log, TimeComparatorEnum } from "../utils/common";
+import { isBuenosDiasTime, log, TimeComparatorEnum } from "../utils/common";
 import { Context } from "grammy";
 import { getBotState } from "../utils/state";
+import { ErrorEnum, SaludosEnum, InsultosEnum } from "../utils/enums";
+import { GroupData, MyChatMember } from "../types/squadTypes";
+import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 
 export async function paTiMiCola(ctx: Context) {
     try {
@@ -25,20 +28,16 @@ export async function buenasTardes(ctx: Context) {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
             if (userName) {
-                if (checkUser(userName)) {
-                    log.info('Chosen User Found: ' + userName);
-                    await ctx.reply("CALLATE @" + userName);
+                const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
+                const isTime: number = isBuenosDiasTime(currentTime);
+                if (isTime == TimeComparatorEnum.tardeCode) {
+                    await ctx.reply(SaludosEnum.buenasTardes + " @" + userName);
+                    await ctx.react("❤‍🔥");
                 } else {
-                    const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-                    const isTime: number = isBuenosDiasTime(currentTime);
-                    if (isTime == TimeComparatorEnum.tardeCode) {
-                        await ctx.reply(SaludosEnum.buenasTardes + " @" + userName);
-                        await ctx.react("❤‍🔥");
-                    } else {
-                        await ctx.reply(InsultosEnum.tardeInsulto + " @" + userName);
-                        await ctx.react("🤡");
-                    }
+                    await ctx.reply(InsultosEnum.tardeInsulto + " @" + userName);
+                    await ctx.react("🤡");
                 }
+
             } else {
                 log.error(ErrorEnum.errorReadingUser);
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -59,20 +58,16 @@ export async function buenasNoches(ctx: Context) {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
             if (userName) {
-                if (checkUser(userName)) {
-                    log.info('Chosen User Found: ' + userName);
-                    await ctx.reply("CALLATE @" + userName);
+                const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
+                const isTime: number = isBuenosDiasTime(currentTime);
+                if (isTime == TimeComparatorEnum.nocheCode) {
+                    await ctx.reply(SaludosEnum.buenasNoches + " @" + userName);
+                    await ctx.react("❤‍🔥");
                 } else {
-                    const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-                    const isTime: number = isBuenosDiasTime(currentTime);
-                    if (isTime == TimeComparatorEnum.nocheCode) {
-                        await ctx.reply(SaludosEnum.buenasNoches + " @" + userName);
-                        await ctx.react("❤‍🔥");
-                    } else {
-                        await ctx.reply(InsultosEnum.nocheInsulto + " @" + userName);
-                        await ctx.react("🤡");
-                    }
+                    await ctx.reply(InsultosEnum.nocheInsulto + " @" + userName);
+                    await ctx.react("🤡");
                 }
+
             } else {
                 log.error(ErrorEnum.errorReadingUser);
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -92,21 +87,19 @@ export async function buenosDias(ctx: Context) {
     try {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
-            if (userName) {
-                if (checkUser(userName)) {
-                    log.info('Chosen User Found: ' + userName);
-                    await ctx.reply("CALLATE @" + userName);
+            const chatId: string | undefined = ctx.chatId?.toString();
+            if (userName && chatId) {
+                const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
+                const isTime: number = +isBuenosDiasTime(currentTime);
+                if (isTime == TimeComparatorEnum.mananaCode) {
+                    await updateSaludos(userName, chatId);
+                    await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
+                    await ctx.react("❤‍🔥");
                 } else {
-                    const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-                    const isTime: number = +isBuenosDiasTime(currentTime);
-                    if (isTime == TimeComparatorEnum.mananaCode) {
-                        await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
-                        await ctx.react("❤‍🔥");
-                    } else {
-                        await ctx.reply(InsultosEnum.mananaInsulto + " @" + userName);
-                        await ctx.react("🤡");
-                    }
+                    await ctx.reply(InsultosEnum.mananaInsulto + " @" + userName);
+                    await ctx.react("🤡");
                 }
+
             } else {
                 log.error(ErrorEnum.errorReadingUser);
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -119,5 +112,21 @@ export async function buenosDias(ctx: Context) {
         log.error(ErrorEnum.errorInBuenosDias);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
         throw err;
+    }
+}
+
+async function updateSaludos(username: string, chatId: string) {
+    if (username && chatId) {
+        const squadData: GroupData | undefined = await loadGroupData(chatId);
+        if(squadData) {
+            const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);
+            if (user && user.greetingCount >= 0) {
+                log.info("Saludo registrado");
+                user.greetingCount++;
+                return await saveGroupData(chatId, squadData);
+            }
+            log.error("Error registrando saludo");
+            return;
+        }
     }
 }

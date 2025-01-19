@@ -1,19 +1,28 @@
 import { Bot, Context, InputFile } from 'grammy';
-import config from './config';
-import { Logger } from "tslog";
+import { ILogObj, Logger } from "tslog";
 import { getBotState } from './state';
 import * as fs from "fs";
 import * as path from "path";
+import { ErrorEnum } from './enums';
+import { loadGroupDataStore } from '../middlewares/jsonHandler';
 
-export const log = new Logger();
+export const log: Logger<ILogObj> = new Logger({
+    type: "pretty",
+    prettyLogTimeZone: "local"
+});
 
-// Save in local var the locked user
-export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
 
-export const ignoreUser: boolean = false;
 
-export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
+const horaconoMin: number = 58;
+const horaconoHora: number = 16;
 
+//Move this to a config/env file
+export const CREATOR_NAME: string = "VengadorAnal";
+export const CROCANTI_NAME: string = "ElCrocanti";
+export const MIGUE_NAME: string = "Miguesg95";
+export const MANUEL_NAME: string = "Kasspa";
+
+export const MUTED_TIME: number = 30000;
 export const voiceFiles: HashFiles[] = [];
 export const gifFiles: HashFiles[] = [];
 
@@ -30,13 +39,17 @@ Vaya imbecil que no sabes ni usar un bot... 😒
 
 Aquí tienes una lista de comandos disponibles:
 
-- */start*: Inicia el bot.
+- */start*: Inicia el bot. (admin)
 - */stop*: Detiene el bot.
 - */help*: Muestra este mensaje de ayuda.
-- */settings*: Accede a la configuración.
 - */imbeciles*: Llama imbecil a todo el mundo
 - */putamadre*: Se caga en la puta madre
+- */horaespecial*: Por si se te ha olvidado cuando es la hora coño
+- */callamanuel*: Mandare callar al manuel
 - */alechupa*: Quieres ver al Ale chupar? 😉
+- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin)
+
+Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 
 Ademas tengo las siguientes funciones:
 1. Contesto a saludos y buenos dias.
@@ -61,29 +74,6 @@ export enum GifNames {
     aleChupa = "ale_chupa"
 }
 
-export enum SaludosEnum {
-    buenosDias = "Buenos Dias",
-    buenasTardes = "Buenas Tardes",
-    buenasNoches = "Buenas Noches"
-}
-
-//Sustituir por un array de insultos y sacar uno aleatorio
-export enum InsultosEnum {
-    mananaInsulto = "IMBECIL NO ES POR LA MAÑANA",
-    tardeInsulto = "IMBECIL NO ES POR LA TARDE",
-    nocheInsulto = "ES QUE ERES TONTO NO ES DE NOCHE"
-}
-
-export enum ErrorEnum {
-    launchError = 'Error Launching Bot',
-    noSelectedUser = 'No User Selected to Taunt',
-    errorReadingUser = 'Error reading/replying to user',
-    errorInTime = 'Error, time not acounted for',
-    errorInBuenosDias = 'Error dando los buenos dias',
-    errorInTardes = "Error en las buenas tardes",
-    errorInNoche = "Error en las buenas noaches"
-}
-
 export enum TimeComparatorEnum {
     mananaTime = 7,
     tardeTime = 12,
@@ -94,6 +84,16 @@ export enum TimeComparatorEnum {
     tardeCode = 1,
     nocheCode = 2,
     holaCode = 3
+}
+
+export async function getUserIgnore(chatId: string): Promise<number> {
+    const data = await loadGroupDataStore();
+    return data[chatId].isUserBlocked;
+}
+
+export async function loadIgnoreUserName(chatId: string): Promise<string | undefined> {
+    const data = await loadGroupDataStore();
+    return data[chatId].blockedUser;
 }
 
 /**
@@ -127,14 +127,28 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
     return dayPeriod;
 }
 
-export function checkUser(user: string | undefined): boolean | Error {
-    if (!config.userToBeShout) {
-        throw new Error(ErrorEnum.noSelectedUser);
-    }
-    if (user !== config.userToBeShout) {
+export async function botHasAdminRights(ctx: Context): Promise<Boolean> {
+    try {
+        const chatId = ctx.chat?.id;
+        log.info("Checking if bot is admin")
+        if(chatId) {
+            const botMember = await ctx.api.getMe();
+            const admins = await ctx.getChatAdministrators();
+            const isAdmin = admins.find((a) => a.user.id === botMember.id);
+            if(isAdmin) {
+                log.info("Bot is admin");
+                return true;
+            } else {
+                log.warn("Bot is not admin this will lead to errors");
+                return false;
+            }
+        }
         return false;
+    } catch (err) {
+        log.error("Error filering user...");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error("Value not recognized");
     }
-    return true;
 }
 
 export function prepareMediaFiles() {
@@ -176,12 +190,13 @@ export function prepareMediaFiles() {
     }
 }
 
-export function scheduleMessage(bot: Bot, chatId: number, targetHour: number, targetMinute: number, message: string) {
+export function scheduleMessage(bot: Bot, chatId: number, message: string) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
     log.info("Setting hora coño...");
-    targetTime.setHours(targetHour , targetMinute, 0, 0);
+
+    targetTime.setHours(horaconoHora, horaconoMin, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
     if (targetTime.getTime() <= now.getTime()) {
@@ -192,9 +207,9 @@ export function scheduleMessage(bot: Bot, chatId: number, targetHour: number, ta
     log.info("Setting a delay of: " + delay);
 
     // Usa setTimeout para programar el primer mensaje
-    setTimeout(() => {
+    setTimeout(async () => {
         // Envía el mensaje
-        bot.api.sendMessage(chatId, message);
+        await bot.api.sendMessage(chatId, message);
         log.info("Sending Message");
         // Luego, usa setInterval para repetirlo diariamente
         setInterval(() => {
