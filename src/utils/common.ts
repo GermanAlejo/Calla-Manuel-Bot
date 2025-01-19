@@ -47,6 +47,7 @@ Aquí tienes una lista de comandos disponibles:
 - */horaespecial*: Por si se te ha olvidado cuando es la hora coño
 - */callamanuel*: Mandare callar al manuel
 - */alechupa*: Quieres ver al Ale chupar? 😉
+- */fernando*: DA LA CARA FERNANDO
 - */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin)
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
@@ -67,7 +68,8 @@ export enum AudioNames {
     callaManuel1 = "calla_manuel_1",
     callaManuel2 = "calla_manuel_2",
     imbeciles = "imbeciles",
-    putaMadre = "putaMadre"
+    putaMadre = "putaMadre",
+    fernando = "fernando"
 }
 
 export enum GifNames {
@@ -170,7 +172,6 @@ export function prepareMediaFiles() {
                 const fileExt = path.extname(f);
                 if (fileExt === ".ogg") {
                     const fName: string = path.parse(f).name;
-                    // new InputFile("media/ale_chupa.gif");
                     const newFile: HashFiles = {
                         key: fName,
                         value: new InputFile(mediaFolderPath + "/" + f)
@@ -178,12 +179,18 @@ export function prepareMediaFiles() {
                     voiceFiles.push(newFile);
                 } else if (fileExt === ".gif") {
                     const fName: string = path.parse(f).name;
-                    // new InputFile("media/ale_chupa.gif");
                     const newFile: HashFiles = {
                         key: fName,
                         value: new InputFile(mediaFolderPath + "/" + f)
                     };
                     gifFiles.push(newFile);
+                } else if (fileExt === ".mp3") {
+                    const fName: string = path.parse(f).name;
+                    const newFile: HashFiles = {
+                        key: fName,
+                        value: new InputFile(mediaFolderPath + "/" + f)
+                    };
+                    voiceFiles.push(newFile);
                 }
             })
         });

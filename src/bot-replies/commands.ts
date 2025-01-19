@@ -14,6 +14,7 @@ export function runCommands(bot: Bot) {
         { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
         { command: "callamanuel", description: "Manda callar al Manuel" },
         { command: "alechupa", description: "El Ale la chupa" },
+        { command: "fernando", description: "DA LA CARA FERNANDO"},
         { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" }
     ])
         .then(() => log.info("commands description set"))
@@ -86,6 +87,16 @@ export function runCommands(bot: Bot) {
     bot.command('callamanuel', async (ctx: Context) => {
         log.info("Mandando callar a manuel...");
         await callaManuel(ctx);
+    });
+    bot.command('fernando', async (ctx: Context) => {
+        log.info("Sending Audio...");
+        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.fernando);
+        if (!audio) {
+            log.error("Error mandando audio");
+            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+            throw new Error();
+        }
+        await ctx.replyWithVoice(audio.value);
     });
     bot.command('alechupa', async (ctx: Context) => {
         log.info("Mandando gif de Ale...");
