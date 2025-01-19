@@ -1,5 +1,4 @@
 import { Bot, Context, InputFile } from 'grammy';
-import config from './config';
 import { ILogObj, Logger } from "tslog";
 import { getBotState } from './state';
 import * as fs from "fs";
@@ -12,14 +11,18 @@ export const log: Logger<ILogObj> = new Logger({
     prettyLogTimeZone: "local"
 });
 
-// Save in local var the locked user
-export const BLOCKED_USERNAME: string | undefined = (config.userToBeShout);
+
 
 const horaconoMin: number = 58;
 const horaconoHora: number = 16;
 
-export const manuelFilter = (ctx: Context) => ctx.from?.username === BLOCKED_USERNAME;
+//Move this to a config/env file
+export const CREATOR_NAME: string = "VengadorAnal";
+export const CROCANTI_NAME: string = "ElCrocanti";
+export const MIGUE_NAME: string = "Miguesg95";
+export const MANUEL_NAME: string = "Kasspa";
 
+export const MUTED_TIME: number = 30000;
 export const voiceFiles: HashFiles[] = [];
 export const gifFiles: HashFiles[] = [];
 
@@ -36,7 +39,7 @@ Vaya imbecil que no sabes ni usar un bot... 😒
 
 Aquí tienes una lista de comandos disponibles:
 
-- */start*: Inicia el bot.
+- */start*: Inicia el bot. (admin)
 - */stop*: Detiene el bot.
 - */help*: Muestra este mensaje de ayuda.
 - */imbeciles*: Llama imbecil a todo el mundo
@@ -44,6 +47,7 @@ Aquí tienes una lista de comandos disponibles:
 - */horaespecial*: Por si se te ha olvidado cuando es la hora coño
 - */callamanuel*: Mandare callar al manuel
 - */alechupa*: Quieres ver al Ale chupar? 😉
+- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin)
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 
@@ -82,7 +86,7 @@ export enum TimeComparatorEnum {
     holaCode = 3
 }
 
-export async function isUserIgnore(chatId: string): Promise<boolean> {
+export async function getUserIgnore(chatId: string): Promise<number> {
     const data = await loadGroupDataStore();
     return data[chatId].isUserBlocked;
 }
@@ -121,6 +125,30 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
         throw new Error(ErrorEnum.errorInTime);
     }
     return dayPeriod;
+}
+
+export async function botHasAdminRights(ctx: Context): Promise<Boolean> {
+    try {
+        const chatId = ctx.chat?.id;
+        log.info("Checking if bot is admin")
+        if(chatId) {
+            const botMember = await ctx.api.getMe();
+            const admins = await ctx.getChatAdministrators();
+            const isAdmin = admins.find((a) => a.user.id === botMember.id);
+            if(isAdmin) {
+                log.info("Bot is admin");
+                return true;
+            } else {
+                log.warn("Bot is not admin this will lead to errors");
+                return false;
+            }
+        }
+        return false;
+    } catch (err) {
+        log.error("Error filering user...");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error("Value not recognized");
+    }
 }
 
 export function prepareMediaFiles() {

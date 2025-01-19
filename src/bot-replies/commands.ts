@@ -1,7 +1,8 @@
-import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage } from "../utils/common";
+import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
 import { Bot, Context, NextFunction } from "grammy";
 import { getBotState, setBotState } from "../utils/state";
 import { checkAdminMiddleware } from "../middlewares/middleware";
+import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 
 export function runCommands(bot: Bot) {
     bot.api.setMyCommands([
@@ -12,14 +13,15 @@ export function runCommands(bot: Bot) {
         { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
         { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
         { command: "callamanuel", description: "Manda callar al Manuel" },
-        { command: "alechupa", description: "El Ale la chupa" }
+        { command: "alechupa", description: "El Ale la chupa" },
+        { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" }
     ])
-    .then(() => log.info("commands description set"))
-    .catch((err: Error) => {
-        log.trace(err);
-        log.error(err);
-        throw new Error();
-    });
+        .then(() => log.info("commands description set"))
+        .catch((err: Error) => {
+            log.trace(err);
+            log.error(err);
+            throw new Error();
+        });
 
     // Reacts to /start commands
     bot.command('start', checkAdminMiddleware, async (ctx: Context, next: NextFunction) => {
@@ -95,6 +97,77 @@ export function runCommands(bot: Bot) {
         }
         await ctx.replyWithAnimation(gif.value);
     });
+    bot.command('setlevel', checkAdminMiddleware, async (ctx: Context) => {
+        1
+        const level = ctx.match;
+        log.info("setting the level of response...");
+        if (typeof level === 'string') {
+            const value: number = parseInt(level);
+            const chatId = ctx.chat?.id.toString();
+            if (chatId) {
+                if (value >= 0 && value < 3) {
+                    log.info("value selected: " + value);
+                    const data = await loadGroupData(chatId);
+                    if (data) {
+                        data.isUserBlocked = value;
+                        if (value === 2) {
+                            if (await botHasAdminRights(ctx)) {
+                                log.info("setting timer to unmute manuel");
+                                //temporizador
+                                setTimeout(async () => {
+                                    const updatedData = await loadGroupData(chatId);
+                                    if (updatedData && updatedData.isUserBlocked === 2) {
+                                        log.info("User is muted, unmmuting after " + MUTED_TIME);
+                                        updatedData.isUserBlocked = 1;
+                                        await saveGroupData(chatId, updatedData);
+                                    }
+                                }, MUTED_TIME);
+                            } else {
+                                log.info("Skipping due to admin rights");
+                                const updatedData = await loadGroupData(chatId);
+                                if (updatedData) {
+                                    updatedData.isUserBlocked = 1;
+                                    await saveGroupData(chatId, updatedData);
+                                }
+                                return ctx.api.sendMessage(chatId, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
+                            }
+
+                        }
+                        await printLevel(ctx, value);
+                        await saveGroupData(chatId, data);
+                    }
+                } else {
+                    log.warn("Value setted not valid!");
+                    ctx.reply("Imbecil solo valores entre 0 y 2 incluidos");
+                }
+            }
+        }
+    });
+}
+
+async function printLevel(ctx: Context, value: number) {
+    try {
+        switch (value) {
+            case 0:
+                log.info("Low lever not affectig user, doing nothing");
+                return ctx.reply("Ahora no se mandara callar al Manue, ¿Estas seguro? Tu sabras...");
+            case 1:
+                log.info("Mid level ignore, replying to user...");
+                return ctx.reply("El Manuel sera mandado a callar, sabia decision");
+            case 2:
+                //this requires checking
+                log.info("Highest level, deleting user...");
+                return ctx.reply("El Manuel no podra hablar, por fin");
+            default:
+                log.error("Value not valid");
+                log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+                break;
+        }
+    } catch (err) {
+        log.error(err);
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error("Error setting level");
+    }
 }
 
 async function callaManuel(ctx: Context) {

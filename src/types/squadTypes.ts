@@ -7,7 +7,7 @@ export interface MyChatMember {
 
 export interface GroupData {
     blockedUser: string | undefined; // username
-    isUserBlocked: boolean; // Indica si algún usuario está bloqueado
+    isUserBlocked: number; // Indica si algún usuario está bloqueado
     commandOnlyAdmins: boolean; // Si solo los administradores pueden usar comandos
     adminUsers: string[]; // Lista de usernames de administradores
     specialHour: string | undefined; // Hora especial en formato "HH:mm", o null si no está configurada

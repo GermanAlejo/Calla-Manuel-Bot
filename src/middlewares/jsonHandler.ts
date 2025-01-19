@@ -70,7 +70,7 @@ export async function updateGroupData(chatId: string, updates: Partial<GroupData
             //create the chat if it does not exists maybe move this to different function
             data[chatId] = {
                 blockedUser: undefined,
-                isUserBlocked: false,
+                isUserBlocked: 1,
                 commandOnlyAdmins: true,
                 adminUsers: [],
                 specialHour: undefined,

@@ -1,29 +1,10 @@
 {
-  "-4784776214": {
-    "adminUsers": [
-      "VengadorAnal"
-    ],
-    "blockedUser": "Kasspa",
-    "isUserBlocked": true,
-    "commandOnlyAdmins": true,
-    "specialHour": "16.58",
-    "chatMembers": [
-      {
-        "username": "VengadorAnal",
-        "greetingCount": 0
-      },
-      {
-        "username": "Kasspa",
-        "greetingCount": 0
-      }
-    ]
-  },
   "-1001929236095": {
     "adminUsers": [
       "VengadorAnal"
     ],
     "blockedUser": "",
-    "isUserBlocked": false,
+    "isUserBlocked": 0,
     "commandOnlyAdmins": true,
     "specialHour": "16.58",
     "chatMembers": [
@@ -33,6 +14,31 @@
       },
       {
         "username": "ElCrocanti",
+        "greetingCount": 0
+      },
+      {
+        "username": "Kasspa",
+        "greetingCount": 0
+      }
+    ]
+  },
+  "-4784776214": {
+    "adminUsers": [
+      "VengadorAnal",
+      "ElCrocanti",
+      "Miguesg95"
+    ],
+    "blockedUser": "",
+    "isUserBlocked": 1,
+    "commandOnlyAdmins": true,
+    "specialHour": "16.58",
+    "chatMembers": [
+      {
+        "username": "VengadorAnal",
+        "greetingCount": 0
+      },
+      {
+        "username": "Kasspa",
         "greetingCount": 0
       }
     ]
