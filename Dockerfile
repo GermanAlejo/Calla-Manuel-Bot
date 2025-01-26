@@ -5,7 +5,8 @@
     WORKDIR /app
     
     # Copiar SOLO los archivos necesarios para instalar dependencias
-    COPY package.json package-lock.json* ./  # Incluye package-lock.json si existe
+    # Incluye package-lock.json si existe
+    COPY package.json package-lock.json* ./  
     COPY tsconfig.json ./
     
     # Instalar dependencias
