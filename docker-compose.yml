@@ -1,8 +1,11 @@
-# docker-compose.yml
 version: '3.8'
+
 services:
   telegram-bot:
     build: .
     container_name: telegram-bot
     restart: unless-stopped
-    env_file: .env
+    env_file: .env   # Asegúrate de que .env contenga BOT_TOKEN
+    # Si necesitas persistir logs:
+    # volumes:
+    #   - ./logs:/app/logs
