@@ -4,20 +4,20 @@
 
     WORKDIR /app
     
-    # Copiar archivos de dependencias y configuración
-    COPY package*..json ./
+    # Copiar SOLO los archivos necesarios para instalar dependencias
+    COPY package.json package-lock.json* ./  # Incluye package-lock.json si existe
     COPY tsconfig.json ./
     
-    # Instalar dependencias (incluyendo devDependencies)
+    # Instalar dependencias
     RUN npm install
     
-    # Copiar código fuente
+    # Copiar el resto del código
     COPY src ./src
     
-    # Compilar TypeScript a JavaScript
+    # Compilar TypeScript
     RUN npm run build
     
-    # Eliminar dependencias de desarrollo (opcional, reduce tamaño)
+    # Eliminar devDependencies
     RUN npm prune --production
     
     # --- Etapa de ejecución ---
@@ -25,11 +25,10 @@
     
     WORKDIR /app
     
-    # Copiar solo lo necesario desde la etapa de construcción
+    # Copiar desde la etapa de construcción
     COPY --from=builder /app/package*.json ./
     COPY --from=builder /app/node_modules ./node_modules
-    COPY --from=builder /app/lib ./lib    
+    COPY --from=builder /app/lib ./lib
     COPY .env ./
     
-    # Comando para iniciar el bot
     CMD ["npm", "start"]
