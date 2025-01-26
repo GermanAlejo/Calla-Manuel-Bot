@@ -1,4 +1,4 @@
-import { Context } from "grammy";
+import type { Context } from "grammy";
 
 export interface MyChatMember {
     username: string;

@@ -32,7 +32,7 @@ export function runCommands(bot: Bot) {
             log.warn("Not a group??");
             return next();
         } else {
-            scheduleMessage(bot, chatId, "Feliz hora coño");
+            await scheduleMessage(bot, chatId, "Feliz hora coño");
         }
         if (getBotState()) {
             log.info("Bot is already active");

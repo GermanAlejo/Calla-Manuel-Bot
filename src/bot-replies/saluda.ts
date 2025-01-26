@@ -1,9 +1,10 @@
-import { ChatMember } from "grammy/types";
+import type { ChatMember } from "grammy/types";
+import type { Context } from "grammy";
+
 import { isBuenosDiasTime, log, TimeComparatorEnum } from "../utils/common";
-import { Context } from "grammy";
 import { getBotState } from "../utils/state";
 import { ErrorEnum, SaludosEnum, InsultosEnum } from "../utils/enums";
-import { GroupData, MyChatMember } from "../types/squadTypes";
+import type { GroupData, MyChatMember } from "../types/squadTypes";
 import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 
 export async function paTiMiCola(ctx: Context) {
@@ -91,7 +92,7 @@ export async function buenosDias(ctx: Context) {
             if (userName && chatId) {
                 const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
                 const isTime: number = +isBuenosDiasTime(currentTime);
-                if (isTime == TimeComparatorEnum.mananaCode) {
+                if (isTime == TimeComparatorEnum.mediaNocheTime) {
                     await updateSaludos(userName, chatId);
                     await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
                     await ctx.react("❤‍🔥");

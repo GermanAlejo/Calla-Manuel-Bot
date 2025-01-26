@@ -1,13 +1,14 @@
 import * as fs from "fs";
-import { GroupData, GroupDataStore } from "../types/squadTypes";
+
+import type { GroupData, GroupDataStore } from "../types/squadTypes";
 import { log } from "../utils/common";
 
 const dataFile: string = "src/data/squadData.json";
 
-export async function loadGroupData(chatId: string): Promise<GroupData | undefined> {
+export function loadGroupData(chatId: string): GroupData | undefined {
     try {
         log.info("Reading JSON...");
-        const dataStore = await loadGroupDataStore();
+        const dataStore = loadGroupDataStore();
         if (dataStore[chatId]) {
             return dataStore[chatId];
         } else {
@@ -21,12 +22,12 @@ export async function loadGroupData(chatId: string): Promise<GroupData | undefin
     }
 }
 
-export async function saveGroupData(chatId: string, data: GroupData): Promise<void> {
+export function saveGroupData(chatId: string, data: GroupData): void {
     try {
         log.info("Writting JSON...");
-        const dataStore = await loadGroupDataStore(); // Load the existing data store
+        const dataStore = loadGroupDataStore(); // Load the existing data store
         dataStore[chatId] = data; // Update or add the group data
-        await saveGroupDataStore(dataStore); // Save the updated data store
+        saveGroupDataStore(dataStore); // Save the updated data store
     } catch (err) {
         log.error("Error reading JSON");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -34,7 +35,7 @@ export async function saveGroupData(chatId: string, data: GroupData): Promise<vo
     }
 }
 
-export async function loadGroupDataStore(): Promise<GroupDataStore> {
+export function loadGroupDataStore(): GroupDataStore {
     try {
         log.info("Reading JSON...");
         if (!fs.existsSync(dataFile)) {
@@ -51,7 +52,7 @@ export async function loadGroupDataStore(): Promise<GroupDataStore> {
     }
 }
 
-export async function saveGroupDataStore(data: GroupDataStore): Promise<void> {
+export function saveGroupDataStore(data: GroupDataStore): void {
     try {
         log.info("Writting JSON...");
         fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
@@ -62,10 +63,10 @@ export async function saveGroupDataStore(data: GroupDataStore): Promise<void> {
     }
 }
 
-export async function updateGroupData(chatId: string, updates: Partial<GroupData>): Promise<void> {
+export function updateGroupData(chatId: string, updates: Partial<GroupData>): void {
     try {
         log.info("Updating data from chat: " + chatId);
-        const data = await loadGroupDataStore();
+        const data = loadGroupDataStore();
         if (!data[chatId]) {
             //create the chat if it does not exists maybe move this to different function
             data[chatId] = {
@@ -78,7 +79,7 @@ export async function updateGroupData(chatId: string, updates: Partial<GroupData
             };
         }
         data[chatId] = { ...data[chatId], ...updates };
-        await saveGroupDataStore(data);
+        saveGroupDataStore(data);
     } catch (err) {
         log.error("Error reading JSON");
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
