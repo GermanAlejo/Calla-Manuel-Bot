@@ -5,11 +5,11 @@
   "main": "bot.ts",
   "scripts": {
     "lint": "eslint src/**/*.ts",
+    "build": "tsc",
     "build --watch": "tsc --watch",
-    "start-dev": "node lib/bot.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "NODE_PATH=./build node build/index.js",
-    "build": "tsc -p ."
+    "start": "node lib/bot.js",
+    "start-dev": "nodemon src/bot.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "german",
   "license": "ISC",

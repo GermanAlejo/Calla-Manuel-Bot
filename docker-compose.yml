@@ -18,9 +18,5 @@ services:
       target: base
     volumes:
       - ./src:/home/node/app/src
-    container_name: ts-node-docker
-    expose:
-      - '4000'
-    ports:
-      - '4000:4000'
-    command: npm run dev
+    container_name: ts-node-docker-bot
+    command: npm run start
