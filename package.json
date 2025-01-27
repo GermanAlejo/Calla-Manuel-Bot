@@ -9,8 +9,7 @@
     "start-dev": "node lib/bot.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "NODE_PATH=./build node build/index.js",
-    "build": "tsc -p .",
-    "dev": "nodemon src/index.ts"
+    "build": "tsc -p ."
   },
   "author": "german",
   "license": "ISC",
