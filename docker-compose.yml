@@ -1,11 +1,26 @@
-version: '3.8'
+#version: '3.8'
+#
+#services:
+#  telegram-bot:
+#    build: .
+#    container_name: telegram-bot
+#    restart: unless-stopped
+#    env_file: .env   # Asegúrate de que .env contenga BOT_TOKEN
+#    # Si necesitas persistir logs:
+#    # volumes:
+#    #   - ./logs:/app/logs
 
 services:
-  telegram-bot:
-    build: .
-    container_name: telegram-bot
-    restart: unless-stopped
-    env_file: .env   # Asegúrate de que .env contenga BOT_TOKEN
-    # Si necesitas persistir logs:
-    # volumes:
-    #   - ./logs:/app/logs
+  ts-node-docker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    volumes:
+      - ./src:/home/node/app/src
+    container_name: ts-node-docker
+    expose:
+      - '4000'
+    ports:
+      - '4000:4000'
+    command: npm run dev

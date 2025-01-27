@@ -3,7 +3,7 @@ import * as fs from "fs";
 import type { GroupData, GroupDataStore } from "../types/squadTypes";
 import { log } from "../utils/common";
 
-const dataFile: string = "../../data/squadData.json";
+const dataFile: string = "/../../data/squadData.json";
 
 export function loadGroupData(chatId: string): GroupData | undefined {
     try {
