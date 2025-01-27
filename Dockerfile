@@ -27,12 +27,11 @@ COPY package*.json ./
 # Instala solo dependencias de producción
 RUN npm ci --only=production
 
+# En la etapa de producción, antes del COPY final
+RUN mkdir -p /app/data
+
 # Copia los archivos compilados desde la fase de construcción
 COPY --from=builder /app/lib ./lib
-
-RUN mkdir -p /app/data  # Crea el directorio que falta
-COPY --from=builder /app/src/data /app/data  
-# Si necesitas copiar contenido
 
 #RUN chown -R node:node /app/data  
 # Si usas usuario 'node'
