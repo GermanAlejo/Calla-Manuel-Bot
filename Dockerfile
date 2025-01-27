@@ -1,6 +1,6 @@
 # Dockerfile
 # --- Etapa de construcción (build) ---
-    FROM node:20-alpine AS base
+    FROM node:20-alpine AS builder
 
     WORKDIR /
     
@@ -14,7 +14,7 @@
     
     ## Copiar el resto del código
     COPY src ..
-    
+
     #ENV NODE_PATH=./build
 
     RUN npm run build
