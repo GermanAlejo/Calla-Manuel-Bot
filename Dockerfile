@@ -31,7 +31,7 @@ RUN npm ci --only=production
 COPY --from=builder /app/lib ./lib
 
 # Variable de entorno para el token del bot (se debe proporcionar al ejecutar)
-ENV BOT_TOKEN=7903535365:AAEaQcHvkIVj-fwbmqOE8vrlK8hnEJrFWws
+ENV BOT_TOKEN=
 
 # Comando para iniciar el bot
 CMD ["npm", "start"]
