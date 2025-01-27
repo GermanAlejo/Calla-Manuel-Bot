@@ -1,9 +1,10 @@
 import * as fs from "fs";
+import path from "path";
 
 import type { GroupData, GroupDataStore } from "../types/squadTypes";
 import { log } from "../utils/common";
 
-const dataFile: string = "/../../data/squadData.json";
+const dataFile: string = path.join(__dirname, "data"); 
 
 export function loadGroupData(chatId: string): GroupData | undefined {
     try {
