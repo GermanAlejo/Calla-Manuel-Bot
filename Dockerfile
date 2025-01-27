@@ -1,8 +1,8 @@
 # Dockerfile
 # --- Etapa de construcción (build) ---
-    FROM node:20 AS base
+    FROM node:20-alpine AS base
 
-    WORKDIR /home/node/app
+    WORKDIR /
     
     # Copiar SOLO los archivos necesarios para instalar dependencias
     # Incluye package-lock.json si existe
@@ -13,17 +13,11 @@
     RUN npm install
     
     ## Copiar el resto del código
-    #COPY src ..
-#
-    #FROM base as production
-#
+    COPY src ..
+    
     #ENV NODE_PATH=./build
-#
+
     RUN npm run build
-#
-    #
-#
-    #CMD ["npm", "start"]
 
     # Compilar TypeScript
     RUN npm run build || echo "Advertencia: Hubo errores de compilación, pero continuamos..."
@@ -34,7 +28,7 @@
     # --- Etapa de ejecución ---
     FROM node:20-alpine
     
-    WORKDIR /home/node/app
+    WORKDIR /
     
     # Copiar desde la etapa de construcción
     COPY --from=builder /package*.json ./
