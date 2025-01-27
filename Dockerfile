@@ -1,20 +1,37 @@
+# Usa una imagen base de Node.js compatible con ARM (Raspberry Pi)
+FROM node:20-alpine AS builder
 
-# Use the official Node.js 14 image as a base
-FROM node:20
+# Establece el directorio de trabajo
+WORKDIR /app
 
-# Set the working directory to /bot
-WORKDIR /bot
-
-# Copy the package.json file into the working directory
+# Copia los archivos de dependencias
 COPY package*.json ./
 
-# Install the dependencies
-RUN npm install
+# Instala todas las dependencias (incluyendo devDependencies)
+RUN npm ci
 
-RUN npm run build
-
-# Copy the rest of the application code into the working directory
+# Copia el resto de los archivos del proyecto
 COPY . .
 
-# Run the command to start the application when the container starts
+# Compila el proyecto TypeScript
+RUN npm run build
+
+# --- Fase de producción ---
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copia package.json y package-lock.json
+COPY package*.json ./
+
+# Instala solo dependencias de producción
+RUN npm ci --only=production
+
+# Copia los archivos compilados desde la fase de construcción
+COPY --from=builder /app/lib ./lib
+
+# Variable de entorno para el token del bot (se debe proporcionar al ejecutar)
+ENV BOT_TOKEN=your_token_here
+
+# Comando para iniciar el bot
 CMD ["npm", "start"]
