@@ -1,39 +1,20 @@
-# Dockerfile
-# --- Etapa de construcción (build) ---
-    FROM node:20-alpine AS builder
 
-    WORKDIR /
-    
-    # Copiar SOLO los archivos necesarios para instalar dependencias
-    # Incluye package-lock.json si existe
-    COPY package.json ./
-    COPY tsconfig.json ./
-    
-    # Instalar dependencias
-    RUN npm install
-    
-    ## Copiar el resto del código
-    COPY src ..
+# Use the official Node.js 14 image as a base
+FROM node:14
 
-    #ENV NODE_PATH=./build
+# Set the working directory to /app
+WORKDIR /app
 
-    RUN npm run build
+# Copy the package.json file into the working directory
+COPY package*.json ./
 
-    # Compilar TypeScript
-    RUN npm run build || echo "Advertencia: Hubo errores de compilación, pero continuamos..."
-    
-    # Eliminar devDependencies
-    RUN npm prune --production
-    
-    # --- Etapa de ejecución ---
-    FROM node:20-alpine
-    
-    WORKDIR /
-    
-    # Copiar desde la etapa de construcción
-    COPY --from=builder /package*.json ./
-    COPY --from=builder /node_modules ./node_modules
-    COPY --from=builder /lib ./lib
-    COPY .env ./
-    
-    CMD ["npm", "start"]
+# Install the dependencies
+RUN npm install
+
+RUN npm run build
+
+# Copy the rest of the application code into the working directory
+COPY . .
+
+# Run the command to start the application when the container starts
+CMD ["npm", "start"]
