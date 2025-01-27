@@ -1,9 +1,9 @@
 
 # Use the official Node.js 14 image as a base
-FROM node:14
+FROM node:20
 
-# Set the working directory to /app
-WORKDIR /app
+# Set the working directory to /bot
+WORKDIR /bot
 
 # Copy the package.json file into the working directory
 COPY package*.json ./
