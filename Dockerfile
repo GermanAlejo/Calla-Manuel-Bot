@@ -19,7 +19,7 @@
 #
     #ENV NODE_PATH=./build
 #
-    #RUN npm run build
+    RUN npm run build
 #
     #
 #
