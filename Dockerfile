@@ -31,9 +31,11 @@ RUN npm ci --only=production
 COPY --from=builder /app/lib ./lib
 
 RUN mkdir -p /app/data  # Crea el directorio que falta
-COPY --from=builder /app/data /app/data  # Si necesitas copiar contenido
+COPY --from=builder /app/src/data /app/data  
+# Si necesitas copiar contenido
 
-#RUN chown -R node:node /app/data  # Si usas usuario 'node'
+#RUN chown -R node:node /app/data  
+# Si usas usuario 'node'
 
 # Variable de entorno para el token del bot (se debe proporcionar al ejecutar)
 #ENV BOT_TOKEN=
