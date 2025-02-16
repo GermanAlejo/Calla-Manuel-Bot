@@ -118,7 +118,7 @@ export async function buenosDias(ctx: Context) {
 
 async function updateSaludos(username: string, chatId: string) {
     if (username && chatId) {
-        const squadData: GroupData | undefined = await loadGroupData(chatId);
+        const squadData: GroupData | undefined = loadGroupData(chatId);
         if(squadData) {
             const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);
             if (user && user.greetingCount >= 0) {

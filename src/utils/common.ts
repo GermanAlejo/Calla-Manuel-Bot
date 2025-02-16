@@ -156,9 +156,10 @@ export async function botHasAdminRights(ctx: Context): Promise<boolean> {
 
 export function prepareMediaFiles() {
     if (getBotState()) {
-        const mediaFolderPath = "media";
+        const mediaFolderPath = getMediaDir();
+        console.log("abs path: " + mediaFolderPath);
         if (!fs.existsSync(mediaFolderPath)) {
-            log.error("La carpeta no existe.");
+            log.error("La carpeta " + mediaFolderPath + " no existe.");
             log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
             throw new Error();
         }
@@ -168,34 +169,47 @@ export function prepareMediaFiles() {
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
                 throw err;
             }
-
             files.forEach(f => {
                 const fileExt = path.extname(f);
-                if (fileExt === ".ogg") {
+                const filePath = path.join(mediaFolderPath, f);
+                if (fileExt === ".ogg" || fileExt === ".mp3") {
                     const fName: string = path.parse(f).name;
                     const newFile: HashFiles = {
                         key: fName,
-                        value: new InputFile(mediaFolderPath + "/" + f)
+                        value: new InputFile(filePath + f)
                     };
                     voiceFiles.push(newFile);
                 } else if (fileExt === ".gif") {
                     const fName: string = path.parse(f).name;
                     const newFile: HashFiles = {
                         key: fName,
-                        value: new InputFile(mediaFolderPath + "/" + f)
+                        value: new InputFile(filePath + f)
                     };
                     gifFiles.push(newFile);
-                } else if (fileExt === ".mp3") {
-                    const fName: string = path.parse(f).name;
-                    const newFile: HashFiles = {
-                        key: fName,
-                        value: new InputFile(mediaFolderPath + "/" + f)
-                    };
-                    voiceFiles.push(newFile);
                 }
             })
         });
     }
+}
+
+function getMediaDir() {
+    // Navigate up to the project root (adjust based on this file's depth)
+    const projectRoot = path.resolve(__dirname, '..', '..');
+    console.log("ROOT: " + projectRoot);
+    console.log("MEDIA: " + path.join(projectRoot, 'media'));
+    const mediaPath = path.join(projectRoot, 'media');
+    const is = fs.existsSync(path.join(projectRoot, 'media'));
+    //Lets read the directory and make sure it exits
+    if(!fs.existsSync(mediaPath)) {
+        log.info("Path to media does not exist, let's create it");
+        //create folder
+        fs.mkdirSync(mediaPath);
+        log.info("Path created in: " + mediaPath);
+    } else {
+        log.info("Path to media exist");
+    }
+    console.log("EXISTS: " + is);
+    return mediaPath;
 }
 
 export function scheduleMessage(bot: Bot, chatId: number, message: string) {
