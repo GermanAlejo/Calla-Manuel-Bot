@@ -171,19 +171,19 @@ export function prepareMediaFiles() {
             }
             files.forEach(f => {
                 const fileExt = path.extname(f);
-                const filePath = path.join(mediaFolderPath, f);
+                const filePath = path.join(mediaFolderPath, f); //This is full name
                 if (fileExt === ".ogg" || fileExt === ".mp3") {
                     const fName: string = path.parse(f).name;
                     const newFile: HashFiles = {
                         key: fName,
-                        value: new InputFile(filePath + f)
+                        value: new InputFile(filePath)
                     };
                     voiceFiles.push(newFile);
                 } else if (fileExt === ".gif") {
                     const fName: string = path.parse(f).name;
                     const newFile: HashFiles = {
                         key: fName,
-                        value: new InputFile(filePath + f)
+                        value: new InputFile(filePath)
                     };
                     gifFiles.push(newFile);
                 }
