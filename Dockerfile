@@ -1,43 +1,28 @@
-# Usa una imagen base de Node.js compatible con ARM (Raspberry Pi)
-FROM node:20-alpine AS builder
+#Usa una imagen base de Node.js compatible con ARM (Raspberry Pi)
+FROM node:20 AS builder
 
-# Establece el directorio de trabajo
-WORKDIR /app
+RUN apt-get update -y && apt-get install -y git
 
-# Copia los archivos de dependencias
-COPY package*.json ./
+RUN echo "Install git..."
 
-# Instala todas las dependencias (incluyendo devDependencies)
-RUN npm ci
+# Create a non-root user context
+USER node
+WORKDIR /home/node/calla-manuel-bot
 
-# Copia el resto de los archivos del proyecto
-COPY . .
+#RUN git clone https://github.com/GermanAlejo/Calla-Manuel-Bot.git ./
 
-# Compila el proyecto TypeScript
-RUN npm run build || echo "Advertencia: Hubo errores de compilación, pero continuamos..."
+# Copy package files and set ownership (already handled by WORKDIR)
+COPY --chown=node:node package*.json ./
 
-# --- Fase de producción ---
-FROM node:20-alpine
+# Install dependencies as the non-root user
+RUN npm install
 
-WORKDIR /app
+# Copy the rest of the files with correct ownership
+COPY --chown=node:node . .
 
-# Copia package.json y package-lock.json
-COPY package*.json ./
+# Build the project
+RUN npm run build || echo "Warning: Build failed, but continuing..."
 
-# Instala solo dependencias de producción
-RUN npm ci --only=production
-
-# En la etapa de producción, antes del COPY final
-RUN mkdir -p /app/data
-
-# Copia los archivos compilados desde la fase de construcción
-COPY --from=builder /app/lib ./lib
-
-#RUN chown -R node:node /app/data  
-# Si usas usuario 'node'
-
-# Variable de entorno para el token del bot (se debe proporcionar al ejecutar)
-#ENV BOT_TOKEN=
-
-# Comando para iniciar el bot
+# Runtime command
 CMD ["npm", "start"]
+

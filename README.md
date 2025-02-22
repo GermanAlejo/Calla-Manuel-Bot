@@ -24,3 +24,34 @@ npm install
 BOT_TOKEN = "token"
 USER_TO_BE_SHOUT = "userid"
 `
+### How to run the bot with docker
+
+Build image
+`
+docker build -t callamanuelbot
+`
+
+Run container
+`
+docker container run -d --name calla-manuel-bot --restart unless-stopped --env-file .env callamanuelbot
+`
+
+Stop the container
+`
+docker stop calla-bot
+`
+
+Remove the container
+`
+docker rm calla-bot
+`
+
+Run the logs
+`
+docker logs -f calla-manuel-bot
+`
+
+Access running container
+`
+docker exec -it calla-bot /bin/bash
+`

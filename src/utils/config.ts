@@ -10,17 +10,30 @@ dotenv.config({ path: path.resolve(__dirname, "../../", ".env") });
 
 interface ENV {
   botToken: string | undefined;
+  creatorName: string | undefined;
+  //adding specific admins
+  firstAdmin: string | undefined;
+  secondAdmin: string | undefined;
+  manuelUser: string | undefined;
 }
 
 interface Config {
   botToken: string;
+  creatorName: string;
+  firstAdmin: string;
+  secondAdmin: string;
+  manuelUser: string;
 }
 
 // Loading process.env as ENV interface
 
 const getConfig = (): ENV => {
   return {
-    botToken: process.env.BOT_TOKEN
+    botToken: process.env.BOT_TOKEN,
+    creatorName: process.env.CREATOR_NAME,
+    firstAdmin: process.env.FIRST_ADMIN,
+    secondAdmin: process.env.SECOND_ADMIN,
+    manuelUser: process.env.MANUEL_USER
   };
 };
 

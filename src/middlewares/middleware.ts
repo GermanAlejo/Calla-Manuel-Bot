@@ -71,10 +71,11 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
     try {
         log.info("User filter middleware");
         const chatId: string | undefined = ctx.chat?.id.toString();
-        if (chatId) {
+        //check the id exists and is a group
+        if (chatId && chatId.startsWith('-')) {
             const userIgnored: string | undefined = await loadIgnoreUserName(chatId);
             const level: number = await getUserIgnore(chatId);
-            if (ctx.from?.username === userIgnored) {
+            if (userIgnored && ctx.from?.username === userIgnored) {
                 switch (level) {
                     case 0:
                         log.info("Low lever not affectig user, doing nothing");
@@ -99,7 +100,7 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
                 }
             }
             log.info("No user being ignored...");
-        }
+        }//in the future sopport single chats??
         return next();
     } catch (err) {
         log.error(err);

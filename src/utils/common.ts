@@ -5,6 +5,7 @@ import type { Bot, Context } from 'grammy';
 import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
+import config from './config';
 import { getBotState } from './state';
 import { ErrorEnum } from './enums';
 import { loadGroupDataStore } from '../middlewares/jsonHandler';
@@ -18,10 +19,10 @@ const horaconoMin: number = 58;
 const horaconoHora: number = 16;
 
 //Move this to a config/env file
-export const CREATOR_NAME: string = "VengadorAnal";
-export const CROCANTI_NAME: string = "ElCrocanti";
-export const MIGUE_NAME: string = "Miguesg95";
-export const MANUEL_NAME: string = "@Gondor56";
+export const CREATOR_NAME: string = config.creatorName;
+export const CROCANTI_NAME: string = config.firstAdmin;
+export const MIGUE_NAME: string = config.secondAdmin;
+export const MANUEL_NAME: string = config.manuelUser;
 
 export const MUTED_TIME: number = 30000;
 export const voiceFiles: HashFiles[] = [];
@@ -157,7 +158,6 @@ export async function botHasAdminRights(ctx: Context): Promise<boolean> {
 export function prepareMediaFiles() {
     if (getBotState()) {
         const mediaFolderPath = getMediaDir();
-        console.log("abs path: " + mediaFolderPath);
         if (!fs.existsSync(mediaFolderPath)) {
             log.error("La carpeta " + mediaFolderPath + " no existe.");
             log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -195,10 +195,7 @@ export function prepareMediaFiles() {
 function getMediaDir() {
     // Navigate up to the project root (adjust based on this file's depth)
     const projectRoot = path.resolve(__dirname, '..', '..');
-    console.log("ROOT: " + projectRoot);
-    console.log("MEDIA: " + path.join(projectRoot, 'media'));
     const mediaPath = path.join(projectRoot, 'media');
-    const is = fs.existsSync(path.join(projectRoot, 'media'));
     //Lets read the directory and make sure it exits
     if(!fs.existsSync(mediaPath)) {
         log.info("Path to media does not exist, let's create it");
@@ -208,7 +205,6 @@ function getMediaDir() {
     } else {
         log.info("Path to media exist");
     }
-    console.log("EXISTS: " + is);
     return mediaPath;
 }
 
