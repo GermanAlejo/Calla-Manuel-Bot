@@ -28,7 +28,7 @@ USER_TO_BE_SHOUT = "userid"
 
 Build image
 `
-docker build -t callamanuelbot
+docker build -t callamanuelbot .
 `
 
 Run container
@@ -53,5 +53,5 @@ docker logs -f calla-manuel-bot
 
 Access running container
 `
-docker exec -it calla-bot /bin/bash
+docker exec -it calla-manuel-bot /bin/bash
 `
