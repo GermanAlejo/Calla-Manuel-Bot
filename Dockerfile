@@ -17,8 +17,6 @@ RUN npm install
 # Copy the rest of the files with correct ownership
 COPY . .
 
-USER node
-
 # Build the project
 RUN npm run build || echo "Warning: Build failed, but continuing..."
 
