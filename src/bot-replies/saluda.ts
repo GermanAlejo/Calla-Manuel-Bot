@@ -93,7 +93,7 @@ export async function buenosDias(ctx: Context) {
                 const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
                 const isTime: number = +isBuenosDiasTime(currentTime);
                 if (isTime == TimeComparatorEnum.mediaNocheTime) {
-                    await updateSaludos(userName, chatId);
+                    updateSaludos(userName, chatId);
                     await ctx.reply(SaludosEnum.buenosDias + " @" + userName);
                     await ctx.react("❤‍🔥");
                 } else {
@@ -116,7 +116,7 @@ export async function buenosDias(ctx: Context) {
     }
 }
 
-async function updateSaludos(username: string, chatId: string) {
+function updateSaludos(username: string, chatId: string) {
     if (username && chatId) {
         const squadData: GroupData | undefined = loadGroupData(chatId);
         if(squadData) {
@@ -124,7 +124,7 @@ async function updateSaludos(username: string, chatId: string) {
             if (user && user.greetingCount >= 0) {
                 log.info("Saludo registrado");
                 user.greetingCount++;
-                return await saveGroupData(chatId, squadData);
+                return saveGroupData(chatId, squadData);
             }
             log.error("Error registrando saludo");
             return;

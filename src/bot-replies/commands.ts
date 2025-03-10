@@ -1,5 +1,7 @@
-import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
-import { Bot, Context, NextFunction } from "grammy";
+import type { Bot, Context, NextFunction } from "grammy";
+
+import type { HashFiles } from "../utils/common";
+import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
 import { getBotState, setBotState } from "../utils/state";
 import { checkAdminMiddleware } from "../middlewares/middleware";
 import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
@@ -32,7 +34,7 @@ export function runCommands(bot: Bot) {
             log.warn("Not a group??");
             return next();
         } else {
-            await scheduleMessage(bot, chatId, "Feliz hora coño");
+            scheduleMessage(bot, chatId, "Feliz hora coño");
         }
         if (getBotState()) {
             log.info("Bot is already active");
@@ -109,7 +111,6 @@ export function runCommands(bot: Bot) {
         await ctx.replyWithAnimation(gif.value);
     });
     bot.command('setlevel', checkAdminMiddleware, async (ctx: Context) => {
-        1
         const level = ctx.match;
         log.info("setting the level of response...");
         if (typeof level === 'string') {
@@ -118,38 +119,38 @@ export function runCommands(bot: Bot) {
             if (chatId) {
                 if (value >= 0 && value < 3) {
                     log.info("value selected: " + value);
-                    const data = await loadGroupData(chatId);
+                    const data = loadGroupData(chatId);
                     if (data) {
-                        data.isUserBlocked = value;
+                        data.userBlockLevel = value;
                         if (value === 2) {
                             if (await botHasAdminRights(ctx)) {
                                 log.info("setting timer to unmute manuel");
                                 //temporizador
-                                setTimeout(async () => {
-                                    const updatedData = await loadGroupData(chatId);
-                                    if (updatedData && updatedData.isUserBlocked === 2) {
+                                setTimeout(() => {
+                                    const updatedData = loadGroupData(chatId);
+                                    if (updatedData && updatedData.userBlockLevel === 2) {
                                         log.info("User is muted, unmmuting after " + MUTED_TIME);
-                                        updatedData.isUserBlocked = 1;
-                                        await saveGroupData(chatId, updatedData);
+                                        updatedData.userBlockLevel = 1;
+                                        saveGroupData(chatId, updatedData);
                                     }
                                 }, MUTED_TIME);
                             } else {
                                 log.info("Skipping due to admin rights");
-                                const updatedData = await loadGroupData(chatId);
+                                const updatedData = loadGroupData(chatId);
                                 if (updatedData) {
-                                    updatedData.isUserBlocked = 1;
-                                    await saveGroupData(chatId, updatedData);
+                                    updatedData.userBlockLevel = 1;
+                                    saveGroupData(chatId, updatedData);
                                 }
-                                return ctx.api.sendMessage(chatId, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
+                                return await ctx.api.sendMessage(chatId, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
                             }
 
                         }
                         await printLevel(ctx, value);
-                        await saveGroupData(chatId, data);
+                        saveGroupData(chatId, data);
                     }
                 } else {
                     log.warn("Value setted not valid!");
-                    ctx.reply("Imbecil solo valores entre 0 y 2 incluidos");
+                    await ctx.reply("Imbecil solo valores entre 0 y 2 incluidos");
                 }
             }
         }

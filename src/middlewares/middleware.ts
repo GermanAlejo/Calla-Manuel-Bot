@@ -31,7 +31,7 @@ export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, nex
                 const newGroupData: GroupData = {
                     adminUsers: adminUsers,
                     blockedUser: userChosen,
-                    isUserBlocked: 1,
+                    userBlockLevel: 1,
                     commandOnlyAdmins: true,
                     specialHour: "16.58",
                     chatMembers: []
@@ -73,8 +73,8 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
         const chatId: string | undefined = ctx.chat?.id.toString();
         //check the id exists and is a group
         if (chatId && chatId.startsWith('-')) {
-            const userIgnored: string | undefined = await loadIgnoreUserName(chatId);
-            const level: number = await getUserIgnore(chatId);
+            const userIgnored: string | undefined = loadIgnoreUserName(chatId);
+            const level: number = getUserIgnore(chatId);
             if (userIgnored && ctx.from?.username === userIgnored) {
                 switch (level) {
                     case 0:

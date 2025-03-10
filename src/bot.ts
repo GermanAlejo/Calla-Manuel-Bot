@@ -17,8 +17,8 @@ startBot(shutUpBot)
     })
     .catch(err => {
         log.error(err);
-        log.trace(err);
-        throw new Error();
+        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        throw err;
     });
 
 try {
@@ -27,7 +27,7 @@ try {
     runBotSalutations(shutUpBot);
 } catch (err) {
     log.error(err);
-    log.trace("Error in bot.ts");
+    log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
     throw err;
 }
 
@@ -39,11 +39,12 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
         setBotState(true);
         log.info("Starting Bot server");
         const rateLimitMiddleware = requestRateLimitMiddleware({
-            limit: 8, // Máximo 3 solicitudes
-            timeWindow: 5000, // Ventana de tiempo de 5 segundos
-            onLimitExceeded: async (ctx: Context) => {
+            limit: 4, // Máximo 8 solicitudes
+            timeWindow: 3000, // Ventana de tiempo de 5 segundos
+            onLimitExceeded: () => {
                 log.warn("Solicitudes maximas alcanzadas!");
-                await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.")
+                //comment this to reduce spam in groups
+                //await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.");
             }
         });
         bot.use(rateLimitMiddleware);

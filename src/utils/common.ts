@@ -90,12 +90,12 @@ export enum TimeComparatorEnum {
     holaCode = 3
 }
 
-export async function getUserIgnore(chatId: string): Promise<number> {
+export function getUserIgnore(chatId: string): number {
     const data = loadGroupDataStore();
-    return data[chatId].isUserBlocked;
+    return data[chatId].userBlockLevel;
 }
 
-export async function loadIgnoreUserName(chatId: string): Promise<string | undefined> {
+export function loadIgnoreUserName(chatId: string): string | undefined {
     const data = loadGroupDataStore();
     return data[chatId].blockedUser;
 }

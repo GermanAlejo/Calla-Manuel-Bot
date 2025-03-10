@@ -33,8 +33,10 @@ docker build -t callamanuelbot .
 
 Run container
 `
-docker container run -d --name calla-manuel-bot --restart unless-stopped --env-file .env callamanuelbot
+ docker container run -d --name calla-manuel-bot --restart unless-stopped -e TZ=Europe/Madrid --env-file .env callamanuelbot
 `
+
+We need to set the time zone to ensure the bot works correctly
 
 Stop the container
 `

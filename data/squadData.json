@@ -5,7 +5,7 @@
       "ElCrocanti"
     ],
     "blockedUser": "",
-    "isUserBlocked": 0,
+    "userBlockLevel": 0,
     "commandOnlyAdmins": true,
     "specialHour": "16.58",
     "chatMembers": [
@@ -30,7 +30,7 @@
       "Miguesg95"
     ],
     "blockedUser": "",
-    "isUserBlocked": 1,
+    "userBlockLevel": 1,
     "commandOnlyAdmins": true,
     "specialHour": "16.58",
     "chatMembers": [
