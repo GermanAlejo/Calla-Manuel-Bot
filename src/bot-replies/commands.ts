@@ -1,10 +1,12 @@
 import type { Bot, Context, NextFunction } from "grammy";
 
 import type { HashFiles } from "../utils/common";
-import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
+import { gifFiles, helpText, log, voiceFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
 import { getBotState, setBotState } from "../utils/state";
 import { checkAdminMiddleware } from "../middlewares/middleware";
 import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
+import { AUDIO, GIFS } from "../utils/constants/files";
+import { ERRORS } from "../utils/constants/errors";
 
 export function runCommands(bot: Bot) {
     bot.api.setMyCommands([
@@ -19,15 +21,15 @@ export function runCommands(bot: Bot) {
         { command: "fernando", description: "DA LA CARA FERNANDO"},
         { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" }
     ])
-        .then(() => log.info("commands description set"))
-        .catch((err: Error) => {
-            log.trace(err);
-            log.error(err);
-            throw new Error();
-        });
+    .then(() => log.info("commands description set"))
+    .catch((err: Error) => {
+        log.trace(err);
+        log.error(err);
+        throw new Error();
+    });
 
     // Reacts to /start commands
-    bot.command('start', checkAdminMiddleware, async (ctx: Context, next: NextFunction) => {
+    bot.command('start', async (ctx: Context, next: NextFunction) => {
         log.info("Start Command...");
         const chatId: number | undefined = ctx.chat?.id;
         if (!chatId) {
@@ -68,20 +70,20 @@ export function runCommands(bot: Bot) {
     });
     bot.command('imbeciles', async (ctx: Context) => {
         log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.imbeciles);
+        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.IMBECILES);
         if (!audio) {
             log.error("Error mandando audio");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+            log.trace(ERRORS.TRACE(__filename, __dirname));
             throw new Error();
         }
         await ctx.replyWithVoice(audio.value);
     });
     bot.command('putamadre', async (ctx: Context) => {
         log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.putaMadre);
+        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.PUTA_MADRE);
         if (!audio) {
             log.error("Error mandando audio");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+            log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
             throw new Error();
         }
         await ctx.replyWithVoice(audio.value);
@@ -92,7 +94,7 @@ export function runCommands(bot: Bot) {
     });
     bot.command('fernando', async (ctx: Context) => {
         log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.fernando);
+        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.FERNANDO);
         if (!audio) {
             log.error("Error mandando audio");
             log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -102,7 +104,7 @@ export function runCommands(bot: Bot) {
     });
     bot.command('alechupa', async (ctx: Context) => {
         log.info("Mandando gif de Ale...");
-        const gif: HashFiles | undefined = gifFiles.find(g => g.key === GifNames.aleChupa);
+        const gif: HashFiles | undefined = gifFiles.find(g => g.key === GIFS.ALE_CHUPA);
         if (!gif) {
             log.error("Error mandando gif");
             log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
@@ -191,9 +193,9 @@ async function callaManuel(ctx: Context) {
     const randomNumber = Math.floor(Math.random() * 2) + 1;
     let reply: HashFiles | undefined;
     if (randomNumber == 1) {
-        reply = voiceFiles.find(v => v.key === AudioNames.callaManuel1);
+        reply = voiceFiles.find(v => v.key === AUDIO.CALLA_MANUEL_1);
     } else if (randomNumber == 2) {
-        reply = voiceFiles.find(v => v.key === AudioNames.callaManuel2);
+        reply = voiceFiles.find(v => v.key === AUDIO.CALLA_MANUEL_2);
     }
 
     if (!reply) {

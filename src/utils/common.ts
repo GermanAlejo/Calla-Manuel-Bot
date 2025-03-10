@@ -7,26 +7,29 @@ import { Logger } from 'tslog';
 
 import config from './config';
 import { getBotState } from './state';
-import { ErrorEnum } from './enums';
+import { CodeEnum } from './enums';
 import { loadGroupDataStore } from '../middlewares/jsonHandler';
+import { HOURS } from "./constants/times";
+import { ERRORS } from "./constants/errors";
+import { GENERAL } from "./constants/messages";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
     prettyLogTimeZone: "local"
 });
 
-const horaconoMin: number = 58;
-const horaconoHora: number = 16;
+const horaconoMin: number = 58; // Hora coño storadge
+const horaconoHora: number = 16; // Hora coño storadge
 
 //Move this to a config/env file
-export const CREATOR_NAME: string = config.creatorName;
-export const CROCANTI_NAME: string = config.firstAdmin;
-export const MIGUE_NAME: string = config.secondAdmin;
-export const MANUEL_NAME: string = config.manuelUser;
+export const CREATOR_NAME: string = config.creatorName;// read admin username
+export const CROCANTI_NAME: string = config.firstAdmin;// read admin username
+export const MIGUE_NAME: string = config.secondAdmin;// read admin username
+export const MANUEL_NAME: string = config.manuelUser;// read selected username
 
-export const MUTED_TIME: number = 30000;
-export const voiceFiles: HashFiles[] = [];
-export const gifFiles: HashFiles[] = [];
+export const MUTED_TIME: number = 30000; //Muted for 30 seconds
+export const voiceFiles: HashFiles[] = []; //List to store voice files
+export const gifFiles: HashFiles[] = []; //List to store gifs files
 
 export const buenosDiasRegex: RegExp[] = [
     /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i,
@@ -66,30 +69,6 @@ export interface HashFiles {
     value: InputFile;
 }
 
-export enum AudioNames {
-    callaManuel1 = "calla_manuel_1",
-    callaManuel2 = "calla_manuel_2",
-    imbeciles = "imbeciles",
-    putaMadre = "putaMadre",
-    fernando = "fernando"
-}
-
-export enum GifNames {
-    aleChupa = "ale_chupa"
-}
-
-//this enum should be revisited
-export enum TimeComparatorEnum {
-    mananaTime = 7,
-    tardeTime = 12,
-    nocheTime = 20,
-    onceNocheTime = 23,
-    mediaNocheTime = 0, //use for mañana as well
-    tardeCode = 1,
-    nocheCode = 2,
-    holaCode = 3
-}
-
 export function getUserIgnore(chatId: string): number {
     const data = loadGroupDataStore();
     return data[chatId].userBlockLevel;
@@ -107,26 +86,26 @@ export function loadIgnoreUserName(chatId: string): string | undefined {
  * 
  * @returns 
  */
-export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
+export function isBuenosDiasTime(saludoTime: number): CodeEnum {
     log.info("--isBuenosDiasTime--");
     let dayPeriod: number;
-    if (saludoTime >= TimeComparatorEnum.mananaTime && saludoTime < TimeComparatorEnum.tardeTime) {
+    if (saludoTime >= HOURS.mananaTime && saludoTime < HOURS.tardeTime) {
         //mañana
-        log.info("In the morning");
-        dayPeriod = TimeComparatorEnum.mediaNocheTime;
-    } else if (saludoTime >= TimeComparatorEnum.tardeTime && saludoTime < TimeComparatorEnum.nocheTime) {
+        log.info(GENERAL.IN_MORNING);
+        dayPeriod = HOURS.mediaNocheTime;
+    } else if (saludoTime >= HOURS.tardeTime && saludoTime < HOURS.nocheTime) {
         //tarde
-        log.info("Es por la tarde");
-        dayPeriod = TimeComparatorEnum.tardeCode;
-    } else if ((saludoTime >= TimeComparatorEnum.nocheTime && saludoTime < TimeComparatorEnum.onceNocheTime) ||
-        (saludoTime >= TimeComparatorEnum.mediaNocheTime && saludoTime < TimeComparatorEnum.mananaTime)) {
+        log.info(GENERAL.TARDE);
+        dayPeriod = CodeEnum.tardeCode;
+    } else if ((saludoTime >= HOURS.nocheTime && saludoTime < HOURS.onceNocheTime) ||
+        (saludoTime >= HOURS.mediaNocheTime && saludoTime < HOURS.mananaTime)) {
         //noche
-        log.info("Es de noche");
-        dayPeriod = TimeComparatorEnum.nocheCode;
+        log.info(GENERAL.NOCHE);
+        dayPeriod = CodeEnum.nocheCode;
     } else {
-        log.error(ErrorEnum.errorInTime);
+        log.error(ERRORS.ERROR_IN_TIME);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error(ErrorEnum.errorInTime);
+        throw new Error(ERRORS.ERROR_IN_TIME);
     }
     return dayPeriod;
 }
@@ -134,16 +113,16 @@ export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
 export async function botHasAdminRights(ctx: Context): Promise<boolean> {
     try {
         const chatId = ctx.chat?.id;
-        log.info("Checking if bot is admin")
+        log.info(GENERAL.CHECK_ADMIN)
         if (chatId) {
             const botMember = await ctx.api.getMe();
             const admins = await ctx.getChatAdministrators();
             const isAdmin = admins.find((a) => a.user.id === botMember.id);
             if (isAdmin) {
-                log.info("Bot is admin");
+                log.info(GENERAL.BOT_IS_ADMIN);
                 return true;
             } else {
-                log.warn("Bot is not admin this will lead to errors");
+                log.warn(GENERAL.BOT_IS_NOT_ADMIN);
                 return false;
             }
         }
@@ -151,7 +130,7 @@ export async function botHasAdminRights(ctx: Context): Promise<boolean> {
     } catch (err) {
         log.error(err);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error("Value not recognized");
+        throw new Error(ERRORS.VALUE_NOT_RECOGNIZED);
     }
 }
 
@@ -165,7 +144,7 @@ export function prepareMediaFiles() {
         }
         fs.readdir(mediaFolderPath, (err, files) => {
             if (err) {
-                log.error("Error leyendo carpeta media");
+                log.error(ERRORS.ERROR_READ_FOLDER);
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
                 throw err;
             }

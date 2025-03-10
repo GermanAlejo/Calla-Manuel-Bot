@@ -3,6 +3,7 @@ import path from "path";
 
 import type { GroupData, GroupDataStore } from "../types/squadTypes";
 import { log } from "../utils/common";
+import { ERRORS } from "../utils/constants/errors";
 
 const projectRoot: string = path.resolve(__dirname, '..', '..');
 const dataFile: string = path.join(projectRoot, 'data', 'squadData.json');
@@ -19,7 +20,7 @@ export function loadGroupData(chatId: string): GroupData | undefined {
         }
     } catch (err) {
         log.error("Error reading JSON");
-        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }
@@ -32,7 +33,7 @@ export function saveGroupData(chatId: string, data: GroupData): void {
         saveGroupDataStore(dataStore); // Save the updated data store
     } catch (err) {
         log.error("Error reading JSON");
-        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }
@@ -49,7 +50,7 @@ export function loadGroupDataStore(): GroupDataStore {
         return JSON.parse(data) as GroupDataStore; // Cast explícito al tipo
     } catch (err) {
         log.error("Error reading JSON");
-        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }
@@ -60,7 +61,7 @@ export function saveGroupDataStore(data: GroupDataStore): void {
         fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
     } catch (err) {
         log.error("Error reading JSON");
-        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }
@@ -84,7 +85,7 @@ export function updateGroupData(chatId: string, updates: Partial<GroupData>): vo
         saveGroupDataStore(data);
     } catch (err) {
         log.error("Error reading JSON");
-        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }

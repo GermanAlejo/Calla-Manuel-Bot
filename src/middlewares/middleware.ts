@@ -1,11 +1,22 @@
 import type { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 
+import { CodeEnum } from "../utils/enums";
+import { ERRORS } from "../utils/constants/errors";
+import type { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
 import { getBotState, setBotState } from "../utils/state";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
-import { buenosDiasRegex, TimeComparatorEnum, log, loadIgnoreUserName, getUserIgnore, MANUEL_NAME, CREATOR_NAME, CROCANTI_NAME, MIGUE_NAME, botHasAdminRights } from "../utils/common";
-import { ErrorEnum } from "../utils/enums";
+import { 
+    buenosDiasRegex, 
+    log, 
+    loadIgnoreUserName, 
+    getUserIgnore, 
+    MANUEL_NAME, 
+    CREATOR_NAME, 
+    CROCANTI_NAME, 
+    MIGUE_NAME, 
+    botHasAdminRights 
+} from "../utils/common";
 import { loadGroupData, loadGroupDataStore, saveGroupData, saveGroupDataStore, updateGroupData } from "./jsonHandler";
-import type { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
 
 export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, next: NextFunction) => {
     try {
@@ -46,8 +57,8 @@ export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, nex
         return next();
     } catch (err) {
         log.error(err)
-        log.error(ErrorEnum.errorReadingUser);
-        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         //this is so the bot does not break
         return next();
     }
@@ -95,7 +106,7 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
                         return next();
                     default:
                         log.error("Error filering user...");
-                        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+                        log.trace(ERRORS.TRACE(__filename, __dirname));
                         throw new Error("Value not recognized");
                 }
             }
@@ -104,8 +115,8 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
         return next();
     } catch (err) {
         log.error(err);
-        log.error(ErrorEnum.errorReadingUser);
-        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         //this is so the bot does not break
         return next();
     }
@@ -257,14 +268,14 @@ function delUser(username: string | undefined, chatId: string) {
 export function runBotSalutations(bot: Bot) {
     try {
         if (buenosDiasRegex.length > 1 && getBotState()) {
-            bot.hears(buenosDiasRegex[TimeComparatorEnum.mediaNocheTime], async (ctx: Context) => await buenosDias(ctx));
-            bot.hears(buenosDiasRegex[TimeComparatorEnum.tardeCode], async (ctx: Context) => await buenasTardes(ctx));
-            bot.hears(buenosDiasRegex[TimeComparatorEnum.nocheCode], async (ctx: Context) => await buenasNoches(ctx));
-            bot.hears(buenosDiasRegex[TimeComparatorEnum.holaCode], async (ctx: Context) => await paTiMiCola(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: Context) => await buenosDias(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.tardeCode], async (ctx: Context) => await buenasTardes(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.nocheCode], async (ctx: Context) => await buenasNoches(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.holaCode], async (ctx: Context) => await paTiMiCola(ctx));
         }
     } catch (err) {
-        log.error(ErrorEnum.errorReadingUser);
-        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
     }
 }

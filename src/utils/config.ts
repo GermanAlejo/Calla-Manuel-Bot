@@ -42,7 +42,6 @@ const getConfig = (): ENV => {
 // that these fields are accessible. If all is good return
 // it as Config which just removes the undefined from our type 
 // definition.
-
 const getSanitzedConfig = (config: ENV): Config => {
   for (const [key, value] of Object.entries(config)) {
     if (value === undefined) {
