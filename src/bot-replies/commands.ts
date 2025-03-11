@@ -25,7 +25,7 @@ export function runCommands(bot: Bot) {
         });
 
     // Reacts to /start commands
-    bot.command('start', checkAdminMiddleware, async (ctx: Context, next: NextFunction) => {
+    bot.command('start', async (ctx: Context, next: NextFunction) => {
         log.info("Start Command...");
         const chatId: number | undefined = ctx.chat?.id;
         if (!chatId) {
@@ -49,7 +49,7 @@ export function runCommands(bot: Bot) {
         log.info("Help Command...");
         await ctx.reply(helpText, { parse_mode: "Markdown" });
     });
-    bot.command('stop', checkAdminMiddleware, async (ctx: Context) => {
+    bot.command('stop', async (ctx: Context) => {
         log.info("Stop Command...");
         if (getBotState()) {
             log.info("Stopping bot...");
