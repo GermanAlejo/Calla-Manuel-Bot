@@ -33,6 +33,7 @@ export const gifFiles: HashFiles[] = []; //List to store gifs files
 
 export const buenosDiasRegex: RegExp[] = [
     /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i,
+    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)(as|a|ass|aa))\b/i,
     /\bbuen(?:as|a)\s*(?:tardes)\b/i,
     /\bbuen(?:as|a)\s*(?:noches)\b/i,
     /hola/i
