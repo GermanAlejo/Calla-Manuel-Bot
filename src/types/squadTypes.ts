@@ -7,6 +7,7 @@ export interface MyChatMember {
 
 export interface GroupData {
     blockedUser: string | undefined; // username
+    isBroDeleted: boolean;
     userBlockLevel: number; // Indica si algún usuario está bloqueado
     commandOnlyAdmins: boolean; // Si solo los administradores pueden usar comandos
     adminUsers: string[]; // Lista de usernames de administradores

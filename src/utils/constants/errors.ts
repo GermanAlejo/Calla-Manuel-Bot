@@ -10,6 +10,7 @@ export const ERRORS = {
     VALUE_NOT_RECOGNIZED: 'Value not recognized',
     ERROR_READ_FOLDER: "Error leyendo carpeta media",
     TRACE: (file: string, located: string) => `Error in: ${file} - Located: ${located} `,
-    ERROR_REGISTRANDO_SALUDO: "Error registrando saludo"
+    ERROR_REGISTRANDO_SALUDO: "Error registrando saludo",
+    ERROR_REPLY_BRO: "Error replying/deleting bro message"
 } as const
 

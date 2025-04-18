@@ -31,8 +31,11 @@ export const MUTED_TIME: number = 30000; //Muted for 30 seconds
 export const voiceFiles: HashFiles[] = []; //List to store voice files
 export const gifFiles: HashFiles[] = []; //List to store gifs files
 
+//This regex could turn into structure if needed
+export const broRegex: RegExp = /\bbr[0oòóôõöøōñ]\w*/i;
+
+//Array with a list of all needed regex for detecting the "saludos"
 export const buenosDiasRegex: RegExp[] = [
-    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i,
     /\bbuen(?:os|as|o|a)\s*(?:d(i|í)(as|a|ass|aa))\b/i,
     /\bbuen(?:as|a)\s*(?:tardes)\b/i,
     /\bbuen(?:as|a)\s*(?:noches)\b/i,
@@ -62,12 +65,22 @@ Ademas tengo las siguientes funciones:
 1. Contesto a saludos y buenos dias.
 2. Mando callar al Manuel.
 3. Contare los buenos dias.
+4. El bot no permite el uso de la palabra prohibida...
 
 `;
 
 export interface HashFiles {
     key: string;
     value: InputFile;
+}
+
+export function shouldBroBeDeleted(chatId: string): boolean {
+    //if we don't have a chatid we might be in a user's chat
+    if(!isChatFromGroup(chatId)) {
+        return false;
+    }
+    const data = loadGroupDataStore();
+    return data[chatId].isBroDeleted;
 }
 
 export function getUserIgnore(chatId: string): number {
@@ -186,6 +199,14 @@ function getMediaDir() {
         log.info("Path to media exist");
     }
     return mediaPath;
+}
+
+function isChatFromGroup(id: string): boolean {
+    if(id.startsWith('-')) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 export function scheduleMessage(bot: Bot, chatId: number, message: string) {

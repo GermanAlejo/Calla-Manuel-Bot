@@ -112,7 +112,9 @@ export function runCommands(bot: Bot) {
         }
         await ctx.replyWithAnimation(gif.value);
     });
-    bot.command('setlevel', checkAdminMiddleware, async (ctx: Context) => {
+    
+    //Lets use this function to set the bros response as well
+    bot.command('setlevel', checkAdminMiddleware, async (ctx: Context, next: NextFunction) => {
         const level = ctx.match;
         log.info("setting the level of response...");
         if (typeof level === 'string') {

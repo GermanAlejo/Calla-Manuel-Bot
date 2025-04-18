@@ -4,7 +4,7 @@ import { CodeEnum } from "../utils/enums";
 import { ERRORS } from "../utils/constants/errors";
 import type { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
 import { getBotState, setBotState } from "../utils/state";
-import { buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
+import { buenosDias, buenasTardes, buenasNoches, paTiMiCola, noBroHere } from "../bot-replies/saluda";
 import { 
     buenosDiasRegex, 
     log, 
@@ -14,7 +14,8 @@ import {
     CREATOR_NAME, 
     CROCANTI_NAME, 
     MIGUE_NAME, 
-    botHasAdminRights 
+    botHasAdminRights, 
+    broRegex
 } from "../utils/common";
 import { loadGroupData, loadGroupDataStore, saveGroupData, saveGroupDataStore, updateGroupData } from "./jsonHandler";
 
@@ -41,6 +42,7 @@ export const joinGroupMiddleware: Middleware<Context> = async (ctx: Context, nex
                 }
                 const newGroupData: GroupData = {
                     adminUsers: adminUsers,
+                    isBroDeleted: false,
                     blockedUser: userChosen,
                     userBlockLevel: 1,
                     commandOnlyAdmins: true,
@@ -94,13 +96,13 @@ export const userFilterMiddleware: Middleware<Context> = async (ctx: Context, ne
                     case 1:
                         log.info("Mid level ignore, replying to user...");
                         log.info("Blocking user: " + userIgnored);
-                        return ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                        return await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
                     case 2:
                         if (await botHasAdminRights(ctx)) {
                             //this requires checking
                             log.info("Highest level, deleting user...");
-                            await ctx.deleteMessage();
-                            return ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                            await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                            return await ctx.deleteMessage();
                         }
                         log.warn("Bot does not have admin rights");
                         return next();
@@ -262,6 +264,22 @@ function delUser(username: string | undefined, chatId: string) {
             const newUserList = squadData.chatMembers.filter(member => member.username !== username);
             updateGroupData(chatId, { chatMembers: newUserList });
         }
+    }
+}
+
+export function runBotResponses(bot: Bot) {
+    try {
+        if(getBotState()) {
+            bot.hears(broRegex, async (ctx: Context) => {
+                await noBroHere(ctx);
+                return;
+            });
+        }
+        return;
+    } catch (err) {
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
     }
 }
 

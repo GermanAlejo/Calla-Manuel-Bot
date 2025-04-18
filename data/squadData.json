@@ -4,6 +4,7 @@
       "VengadorAnal",
       "ElCrocanti"
     ],
+    "isBroDeleted": false,
     "blockedUser": "",
     "userBlockLevel": 0,
     "commandOnlyAdmins": true,
@@ -29,6 +30,7 @@
       "ElCrocanti",
       "Miguesg95"
     ],
+    "isBroDeleted": false,
     "blockedUser": "",
     "userBlockLevel": 1,
     "commandOnlyAdmins": true,

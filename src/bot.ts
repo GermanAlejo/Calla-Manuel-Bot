@@ -5,7 +5,7 @@ import config from './utils/config';
 import { log, prepareMediaFiles } from './utils/common';
 import { runCommands } from "./bot-replies/commands";
 import { setBotState } from "./utils/state";
-import { botStatusMiddleware, joinGroupMiddleware, requestRateLimitMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
+import { botStatusMiddleware, joinGroupMiddleware, requestRateLimitMiddleware, runBotResponses, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
 
@@ -26,6 +26,7 @@ try {
     prepareMediaFiles();
     runCommands(shutUpBot);
     runBotSalutations(shutUpBot);
+    runBotResponses(shutUpBot);
 } catch (err) {
     log.error(err);
     log.trace(ERRORS.TRACE(__filename, __dirname));

@@ -74,6 +74,7 @@ export function updateGroupData(chatId: string, updates: Partial<GroupData>): vo
             //create the chat if it does not exists maybe move this to different function
             data[chatId] = {
                 blockedUser: undefined,
+                isBroDeleted: false,
                 userBlockLevel: 1,
                 commandOnlyAdmins: true,
                 adminUsers: [],

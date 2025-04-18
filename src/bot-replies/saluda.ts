@@ -1,13 +1,46 @@
 import type { ChatMember } from "grammy/types";
 import type { Context } from "grammy";
 
-import { isBuenosDiasTime, log } from "../utils/common";
+import { isBuenosDiasTime, log, shouldBroBeDeleted } from "../utils/common";
 import { getBotState } from "../utils/state";
 import type { GroupData, MyChatMember } from "../types/squadTypes";
 import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 import { ERRORS } from "../utils/constants/errors";
 import { CodeEnum } from "../utils/enums";
 import { GENERAL, INSULTOS, SALUDOS } from "../utils/constants/messages";
+
+export async function noBroHere(ctx: Context) {
+    try {
+        if(getBotState())  {
+            const member: ChatMember = await ctx.getAuthor();
+            const memberId: string = await member.user.id.toString();
+            const chatId: string | undefined = ctx.chat?.id.toString();
+            if(!chatId) {
+                log.warn("No group chat available");
+                if(memberId) {
+                    log.info("Just replying to the message");
+                    return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + member.user.username);
+                }
+                return;//do next outside
+            } else if(shouldBroBeDeleted(chatId)) {
+                //delete mesage
+                log.info("Deleting Bro message");
+                await ctx.reply("Palabra prohibida, @" + member.user.username + " esto es un chat español no la digas mas");
+                return await ctx.deleteMessage();
+            } else {
+                //just reply to the message
+                log.info("Just replying to the message");
+                return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + member.user.username);
+            }
+        } else {
+            log.info(GENERAL.BOT_DESACTIVADO);
+        }
+    } catch (err) {
+        log.error(ERRORS.ERROR_REPLY_BRO);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
 
 export async function paTiMiCola(ctx: Context) {
     try {
