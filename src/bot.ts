@@ -1,5 +1,4 @@
 import { Bot} from "grammy";
-import type { Api, Context, RawApi } from "grammy";
 
 import config from './utils/config';
 import { log, prepareMediaFiles } from './utils/common';
@@ -8,9 +7,12 @@ import { setBotState } from "./utils/state";
 import { botStatusMiddleware, joinGroupMiddleware, requestRateLimitMiddleware, runBotResponses, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
+import { ShutUpContext } from "./types/squadTypes";
+import { conversations, createConversation } from "@grammyjs/conversations";
+import { startNewDebt } from "./bot-replies/conversations";
 
 // Create a bot object
-const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
+const shutUpBot: Bot<ShutUpContext> = new Bot<ShutUpContext>(config.botToken); // <-- place your bot token in this string
 
 startBot(shutUpBot)
     .then(() => {
@@ -33,7 +35,7 @@ try {
     throw err;
 }
 
-async function startBot(bot: Bot<Context, Api<RawApi>>) {
+async function startBot(bot: Bot<ShutUpContext>) {
     try {
         if (bot instanceof Error) {
             throw new Error(ERRORS.LAUNCH_ERROR);
@@ -49,6 +51,10 @@ async function startBot(bot: Bot<Context, Api<RawApi>>) {
                 //await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.");
             }
         });
+        //inititalizes plugin
+        bot.use(conversations());
+        //register conversation handler
+        bot.use(createConversation(startNewDebt));
         bot.use(rateLimitMiddleware);
         bot.use(botStatusMiddleware);
         bot.use(userFilterMiddleware);

@@ -1,8 +1,18 @@
 import type { Context } from "grammy";
+import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
+
+export type ShutUpContext = ConversationFlavor<Context>;
+export type ShutUpConversationContext = Context;
+export type ShutUpConversation = Conversation<ShutUpContext, ShutUpConversationContext>;
 
 export interface MyChatMember {
     username: string;
     greetingCount: number;
+}
+
+export interface Debt {
+    name: string;
+    debtors: MyChatMember[];
 }
 
 export interface GroupData {

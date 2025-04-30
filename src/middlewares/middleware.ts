@@ -2,7 +2,7 @@ import type { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "gramm
 
 import { CodeEnum } from "../utils/enums";
 import { ERRORS } from "../utils/constants/errors";
-import type { GroupData, GroupDataStore, MyChatMember, RateLimitOptions } from "../types/squadTypes";
+import type { GroupData, GroupDataStore, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import { getBotState, setBotState } from "../utils/state";
 import { buenosDias, buenasTardes, buenasNoches, paTiMiCola, noBroHere } from "../bot-replies/saluda";
 import { 
@@ -267,7 +267,7 @@ function delUser(username: string | undefined, chatId: string) {
     }
 }
 
-export function runBotResponses(bot: Bot) {
+export function runBotResponses(bot: Bot<ShutUpContext>) {
     try {
         if(getBotState()) {
             bot.hears(broRegex, async (ctx: Context) => {
@@ -283,7 +283,7 @@ export function runBotResponses(bot: Bot) {
     }
 }
 
-export function runBotSalutations(bot: Bot) {
+export function runBotSalutations(bot: Bot<ShutUpContext>) {
     try {
         if (buenosDiasRegex.length > 1 && getBotState()) {
             bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: Context) => await buenosDias(ctx));

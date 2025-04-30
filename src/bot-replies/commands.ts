@@ -7,8 +7,9 @@ import { checkAdminMiddleware } from "../middlewares/middleware";
 import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
 import { AUDIO, GIFS } from "../utils/constants/files";
 import { ERRORS } from "../utils/constants/errors";
+import { ShutUpContext } from "../types/squadTypes";
 
-export function runCommands(bot: Bot) {
+export function runCommands(bot: Bot<ShutUpContext>) {
     bot.api.setMyCommands([
         { command: "start", description: "Start the bot" },
         { command: "help", description: "Show help text" },
@@ -63,6 +64,10 @@ export function runCommands(bot: Bot) {
             log.info("Bot is already stopped");
             await ctx.reply('El manue ya es escuchado');
         }
+    });
+    bot.command('crearnuevadeuda', async (ctx: ShutUpContext) => {
+        log.info("Iniciando nueva conversacion de deuda");
+        await ctx.conversation.enter("startNewDebt");
     });
     bot.command('horaespecial', async (ctx) => {
         log.info("Es la hora coño?");

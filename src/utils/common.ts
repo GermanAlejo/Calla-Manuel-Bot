@@ -12,6 +12,7 @@ import { loadGroupDataStore } from '../middlewares/jsonHandler';
 import { HOURS } from "./constants/times";
 import { ERRORS } from "./constants/errors";
 import { GENERAL } from "./constants/messages";
+import { ShutUpContext } from "../types/squadTypes";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
@@ -209,7 +210,7 @@ function isChatFromGroup(id: string): boolean {
     }
 }
 
-export function scheduleMessage(bot: Bot, chatId: number, message: string) {
+export function scheduleMessage(bot: Bot<ShutUpContext>, chatId: number, message: string) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
