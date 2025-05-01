@@ -14,8 +14,9 @@
   "author": "german",
   "license": "ISC",
   "dependencies": {
+    "@grammyjs/storage-file": "^2.5.1",
     "dotenv": "^16.4.5",
-    "grammy": "^1.32.0",
+    "grammy": "^1.36.0",
     "tslog": "^4.9.3"
   },
   "devDependencies": {

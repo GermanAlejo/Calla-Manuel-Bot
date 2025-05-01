@@ -1,39 +1,36 @@
 import type { ChatMember } from "grammy/types";
-import type { Context } from "grammy";
 
-import { isBuenosDiasTime, log, shouldBroBeDeleted } from "../utils/common";
+import { isBuenosDiasTime, log } from "../utils/common";
 import { getBotState } from "../utils/state";
-import type { GroupData, MyChatMember } from "../types/squadTypes";
-import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
+import type { GroupData, MyChatMember, ShutUpContext } from "../types/squadTypes";
 import { ERRORS } from "../utils/constants/errors";
 import { CodeEnum } from "../utils/enums";
 import { GENERAL, INSULTOS, SALUDOS } from "../utils/constants/messages";
+import { BRO_STATES } from "../utils/constants/general";
+import { isGroupSession } from "../middlewares/helpers";
 
-export async function noBroHere(ctx: Context) {
+export async function noBroHere(ctx: ShutUpContext) {
     try {
-        if(getBotState())  {
-            const member: ChatMember = await ctx.getAuthor();
-            const memberId: string = await member.user.id.toString();
-            const chatId: string | undefined = ctx.chat?.id.toString();
-            if(!chatId) {
-                log.warn("No group chat available");
-                if(memberId) {
-                    log.info("Just replying to the message");
-                    return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + member.user.username);
-                }
-                return;//do next outside
-            } else if(shouldBroBeDeleted(chatId)) {
-                //delete mesage
-                log.info("Deleting Bro message");
-                await ctx.reply("Palabra prohibida, @" + member.user.username + " esto es un chat español no la digas mas");
-                return await ctx.deleteMessage();
-            } else {
-                //just reply to the message
-                log.info("Just replying to the message");
-                return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + member.user.username);
-            }
-        } else {
-            log.info(GENERAL.BOT_DESACTIVADO);
+        //TODO: This should change to work in private chats
+        if (!isGroupSession(ctx.session)) {
+            log.warn("Not a group");
+            return;
+        }
+        const groupData: GroupData = ctx.session.groupData;
+        if (!groupData.isBroDeleted) {
+            log.info("This function is deactivated");
+            return;
+        }
+        const member: ChatMember = await ctx.getAuthor();
+        const level = groupData.broReplyLevel;
+        if (level === BRO_STATES.reply) {
+            log.info("Just replying to the message");
+            return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + member.user.username);
+        } else if (level === BRO_STATES.delete) {
+            //delete mesage
+            log.info("Deleting Bro message");
+            await ctx.reply("Palabra prohibida, @" + member.user.username + " esto es un chat español no la digas mas");
+            return await ctx.deleteMessage();
         }
     } catch (err) {
         log.error(ERRORS.ERROR_REPLY_BRO);
@@ -42,7 +39,7 @@ export async function noBroHere(ctx: Context) {
     }
 }
 
-export async function paTiMiCola(ctx: Context) {
+export async function paTiMiCola(ctx: ShutUpContext) {
     try {
         if (getBotState()) {
             const member: ChatMember = await ctx.getAuthor();
@@ -59,7 +56,7 @@ export async function paTiMiCola(ctx: Context) {
     }
 }
 
-export async function buenasTardes(ctx: Context) {
+export async function buenasTardes(ctx: ShutUpContext) {
     try {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
@@ -89,7 +86,7 @@ export async function buenasTardes(ctx: Context) {
     }
 }
 
-export async function buenasNoches(ctx: Context) {
+export async function buenasNoches(ctx: ShutUpContext) {
     try {
         if (getBotState()) {
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
@@ -119,16 +116,21 @@ export async function buenasNoches(ctx: Context) {
     }
 }
 
-export async function buenosDias(ctx: Context) {
+export async function buenosDias(ctx: ShutUpContext) {
     try {
         if (getBotState()) {
+            if(!isGroupSession(ctx.session)) {
+                log.warn("Not a group");
+                return;
+            }
             const userName: string | undefined = (await ctx.getAuthor()).user.username;
             const chatId: string | undefined = ctx.chatId?.toString();
+            const groupData: GroupData = ctx.session.groupData;
             if (userName && chatId) {
                 const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
                 const isTime: number = +isBuenosDiasTime(currentTime);
                 if (isTime == CodeEnum.holaCode) {
-                    updateSaludos(userName, chatId);
+                    updateSaludos(userName, chatId, groupData);
                     await ctx.reply(SALUDOS.BUENOS_DIAS + " @" + userName);
                     await ctx.react("❤‍🔥");
                 } else {
@@ -151,18 +153,15 @@ export async function buenosDias(ctx: Context) {
     }
 }
 
-function updateSaludos(username: string, chatId: string) {
+function updateSaludos(username: string, chatId: string, groupData: GroupData) {
     if (username && chatId) {
-        const squadData: GroupData | undefined = loadGroupData(chatId);
-        if(squadData) {
-            const user: MyChatMember | undefined = squadData.chatMembers.find((m) => m.username === username);
-            if (user && user.greetingCount >= 0) {
-                log.info(GENERAL.SALUDO_REGISTRADO);
-                user.greetingCount++;
-                return saveGroupData(chatId, squadData);
-            }
-            log.error(ERRORS.ERROR_REGISTRANDO_SALUDO);
+        const user: MyChatMember | undefined = groupData.chatMembers.find((m) => m.username === username);
+        if (user && user.greetingCount >= 0) {
+            log.info(GENERAL.SALUDO_REGISTRADO);
+            user.greetingCount++;
             return;
         }
+        log.error(ERRORS.ERROR_REGISTRANDO_SALUDO);
+        return;
     }
 }
