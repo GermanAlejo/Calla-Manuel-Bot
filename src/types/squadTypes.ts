@@ -2,8 +2,21 @@ import type { Context, SessionFlavor } from "grammy";
 
 import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 
-export type ShutUpContext = ConversationFlavor<Context>;
-export type ShutUpConversationContext = Context;
+//tipo base de la session
+export type BotSession = 
+  | (PrivateSession & { chatType: "private" })
+  | (GroupSession & { chatType: "group" });
+
+//contexto base con todas las extensiones
+export type BaseContext = Context & SessionFlavor<BotSession>;
+
+// Extender el contexto de Grammy con la sesión
+export type ShutUpContext = BaseContext & ConversationFlavor<Context>;
+
+//Type for conversation
+export type ShutUpConversationContext = BaseContext;
+
+//Tipo para conversaciones
 export type ShutUpConversation = Conversation<ShutUpContext, ShutUpConversationContext>;
 
 export interface PrivateUser {
@@ -49,13 +62,6 @@ export interface PrivateSession extends BaseSession {
     chatType: "private";
     userData: PrivateUser;
 }
-
-export type BotSession = 
-  | (PrivateSession & { chatType: "private" })
-  | (GroupSession & { chatType: "group" });
-
-// Extender el contexto de Grammy con la sesión
-export type ShutUpContext = Context & SessionFlavor<BotSession>;
 
 export interface BotState {
     isBotActive: boolean;

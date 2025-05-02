@@ -1,14 +1,19 @@
-import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
+import type { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 
 import { ERRORS } from "../utils/constants/errors";
 import { GroupData, GroupSession, MyChatMember, PrivateSession, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import {
     log,
-    botHasAdminRights
+    botHasAdminRights,
+    broRegex,
+    buenosDiasRegex
 } from "../utils/common";
 import { ChatMember, User } from "grammy/types";
 import { IGNORE_STATES } from "../utils/constants/general";
 import { isGroupSession, saveNewUser } from "./helpers";
+import { getBotState } from "../utils/state";
+import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
+import { CodeEnum } from "../utils/enums";
 
 export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
@@ -274,37 +279,10 @@ export const requestRateLimitMiddleware = (options: RateLimitOptions): Middlewar
     };
 }
 
-function saveNewUser(username: string | undefined, chatId: string) {
-    if (username) {
-        const squadData: GroupData | undefined = loadGroupData(chatId);
-        if (squadData) {
-            squadData.chatMembers.forEach(member => {
-                if (member.username === username) return;
-            });
-            const newMember: MyChatMember = {
-                username: username,
-                greetingCount: 0
-            }
-            squadData.chatMembers.push(newMember);
-            saveGroupData(chatId, squadData);
-        }
-    }
-}
-
-function delUser(username: string | undefined, chatId: string) {
-    if (username) {
-        const squadData: GroupData | undefined = loadGroupData(chatId);
-        if (squadData) {
-            const newUserList = squadData.chatMembers.filter(member => member.username !== username);
-            updateGroupData(chatId, { chatMembers: newUserList });
-        }
-    }
-}
-
 export function runBotResponses(bot: Bot<ShutUpContext>) {
     try {
         if(getBotState()) {
-            bot.hears(broRegex, async (ctx: Context) => {
+            bot.hears(broRegex, async (ctx: ShutUpContext) => {
                 await noBroHere(ctx);
                 return;
             });
@@ -320,10 +298,10 @@ export function runBotResponses(bot: Bot<ShutUpContext>) {
 export function runBotSalutations(bot: Bot<ShutUpContext>) {
     try {
         if (buenosDiasRegex.length > 1 && getBotState()) {
-            bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: Context) => await buenosDias(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.tardeCode], async (ctx: Context) => await buenasTardes(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.nocheCode], async (ctx: Context) => await buenasNoches(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.holaCode], async (ctx: Context) => await paTiMiCola(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: ShutUpContext) => await buenosDias(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.tardeCode], async (ctx: ShutUpContext) => await buenasTardes(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.nocheCode], async (ctx: ShutUpContext) => await buenasNoches(ctx));
+            bot.hears(buenosDiasRegex[CodeEnum.holaCode], async (ctx: ShutUpContext) => await paTiMiCola(ctx));
         }
     } catch (err) {
         log.error(ERRORS.ERROR_READING_USER);
