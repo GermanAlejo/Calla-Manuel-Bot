@@ -12,6 +12,8 @@ import { GENERAL } from "./utils/constants/messages";
 import { ShutUpContext, BotState, BotSession } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
 import { storage } from "./middlewares/fileAdapter";
+import { conversations, createConversation } from "@grammyjs/conversations";
+import { startNewDebt } from "./bot-replies/conversations";
 
 // Create a bot object
 const shutUpBot: Bot<ShutUpContext & BotState> = new Bot<ShutUpContext & BotState>(config.botToken); // <-- place your bot token in this string
@@ -69,6 +71,10 @@ async function startBot(bot: Bot<ShutUpContext & BotState, Api<RawApi>>) {
       })
     );
     bot.use(sessionInitializerMiddleware);//middleware to initialize session
+    //inititalizes plugin
+    bot.use(conversations());
+    //register conversation handler
+    bot.use(createConversation(startNewDebt));
     bot.use(rateLimitMiddleware);
     bot.use(botStatusMiddleware);
     //bot.use(botStatusSetterMiddleware);

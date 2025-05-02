@@ -1,5 +1,24 @@
 import type { Context, SessionFlavor } from "grammy";
 
+import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
+
+//tipo base de la session
+export type BotSession = 
+  | (PrivateSession & { chatType: "private" })
+  | (GroupSession & { chatType: "group" });
+
+//contexto base con todas las extensiones
+export type BaseContext = Context & SessionFlavor<BotSession>;
+
+// Extender el contexto de Grammy con la sesión
+export type ShutUpContext = BaseContext & ConversationFlavor<Context>;
+
+//Type for conversation
+export type ShutUpConversationContext = BaseContext;
+
+//Tipo para conversaciones
+export type ShutUpConversation = Conversation<ShutUpContext, ShutUpConversationContext>;
+
 export interface PrivateUser {
     id: number;
     username?: string;
@@ -12,6 +31,11 @@ export interface MyChatMember {
     status: "member" | "left" | "kicked" | "administrator"; //this field possible values match grammys
     greetingCount: number;
     joinedAt?: Date;
+}
+
+export interface Debt {
+    name: string;
+    debtors: MyChatMember[];
 }
 
 export interface GroupData {
@@ -38,13 +62,6 @@ export interface PrivateSession extends BaseSession {
     chatType: "private";
     userData: PrivateUser;
 }
-
-export type BotSession = 
-  | (PrivateSession & { chatType: "private" })
-  | (GroupSession & { chatType: "group" });
-
-// Extender el contexto de Grammy con la sesión
-export type ShutUpContext = Context & SessionFlavor<BotSession>;
 
 export interface BotState {
     isBotActive: boolean;
