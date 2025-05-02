@@ -1,4 +1,14 @@
 
+export const IGNORE_STATES = {
+  low: "Bajo",
+  medium: "Medio",
+  high: "Alto"
+} as const;
+
+export const BRO_STATES = {
+  reply: "responder",
+  delete: "borrar"
+}
 
 export const HOURS = {
     mananaTime: 7,

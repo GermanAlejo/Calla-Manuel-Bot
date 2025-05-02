@@ -1,15 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import { InputFile } from 'grammy';
-import type { Bot, Context } from 'grammy';
+import type { Context } from 'grammy';
 import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
 import config from './config';
 import { getBotState } from './state';
 import { CodeEnum } from './enums';
-import { loadGroupDataStore } from '../middlewares/jsonHandler';
-import { HOURS } from "./constants/times";
+import { HOURS } from "./constants/general";
 import { ERRORS } from "./constants/errors";
 import { GENERAL } from "./constants/messages";
 import { ShutUpContext } from "../types/squadTypes";
@@ -43,6 +42,20 @@ export const buenosDiasRegex: RegExp[] = [
     /hola/i
 ];
 
+export const allCommands = [
+    { command: "start", description: "Start the bot" },
+    { command: "help", description: "Show help text" },
+    { command: "stop", description: "Stop the bot" },
+    { command: "horaespecial", description: "Saber la hora coño" },
+    { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
+    { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
+    { command: "callamanuel", description: "Manda callar al Manuel" },
+    { command: "alechupa", description: "El Ale la chupa" },
+    { command: "fernando", description: "DA LA CARA FERNANDO" },
+    { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
+    { command: "fueraBros", description: "Elimina todos los mensajes con bros en el grupo" }
+];
+
 export const helpText = `
 *Bot para callar al Manue* 
 Vaya imbecil que no sabes ni usar un bot... 😒
@@ -73,25 +86,6 @@ Ademas tengo las siguientes funciones:
 export interface HashFiles {
     key: string;
     value: InputFile;
-}
-
-export function shouldBroBeDeleted(chatId: string): boolean {
-    //if we don't have a chatid we might be in a user's chat
-    if(!isChatFromGroup(chatId)) {
-        return false;
-    }
-    const data = loadGroupDataStore();
-    return data[chatId].isBroDeleted;
-}
-
-export function getUserIgnore(chatId: string): number {
-    const data = loadGroupDataStore();
-    return data[chatId].userBlockLevel;
-}
-
-export function loadIgnoreUserName(chatId: string): string | undefined {
-    const data = loadGroupDataStore();
-    return data[chatId].blockedUser;
 }
 
 /**
@@ -191,7 +185,7 @@ function getMediaDir() {
     const projectRoot = path.resolve(__dirname, '..', '..');
     const mediaPath = path.join(projectRoot, 'media');
     //Lets read the directory and make sure it exits
-    if(!fs.existsSync(mediaPath)) {
+    if (!fs.existsSync(mediaPath)) {
         log.info("Path to media does not exist, let's create it");
         //create folder
         fs.mkdirSync(mediaPath);
@@ -202,15 +196,7 @@ function getMediaDir() {
     return mediaPath;
 }
 
-function isChatFromGroup(id: string): boolean {
-    if(id.startsWith('-')) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-export function scheduleMessage(bot: Bot<ShutUpContext>, chatId: number, message: string) {
+export function scheduleMessage(ctx: ShutUpContext, chatId: number, message: string) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
@@ -229,12 +215,12 @@ export function scheduleMessage(bot: Bot<ShutUpContext>, chatId: number, message
     // Usa setTimeout para programar el primer mensaje
     setTimeout(async () => {
         // Envía el mensaje
-        await bot.api.sendMessage(chatId, message);
+        await ctx.api.sendMessage(chatId, message);
         log.info("Sending Message");
         // Luego, usa setInterval para repetirlo diariamente
         setInterval(async () => {
             log.info("Setting interval for next day");
-            await bot.api.sendMessage(chatId, message);
+            await ctx.api.sendMessage(chatId, message);
         }, 24 * 60 * 60 * 1000); // Cada 24 horas
     }, delay);
 }
