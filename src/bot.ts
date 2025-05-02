@@ -5,13 +5,13 @@ import config from './utils/config';
 import { allCommands, log, prepareMediaFiles } from './utils/common';
 import { memberCommands } from "./bot-replies/commands";
 import { setBotState, botStatusMiddleware } from "./utils/state";
-import { requestRateLimitMiddleware, userIgnoredFilterMiddleware, groupUserStatusMiddleware, sessionInitializerMiddleware } from "./middlewares/middleware";
+import { requestRateLimitMiddleware, userIgnoredFilterMiddleware, groupUserStatusMiddleware } from "./middlewares/middleware";
 import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
-import { ShutUpContext, BotState, BotSession } from "./types/squadTypes";
+import { ShutUpContext, BotState } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
-import { storage } from "./middlewares/fileAdapter";
+import { persistenceMiddleware, sessionInitializerMiddleware, storage } from "./middlewares/fileAdapter";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import { startNewDebt } from "./bot-replies/conversations";
 
@@ -29,8 +29,11 @@ startBot(shutUpBot)
   });
 
 try {
+  log.info("Setting media files");
   prepareMediaFiles();
+  log.info("Running salutations");
   runBotSalutations(shutUpBot);
+  log.info("Running responses");
   runBotResponses(shutUpBot);
 } catch (err) {
   log.error(err);
@@ -55,22 +58,16 @@ async function startBot(bot: Bot<ShutUpContext & BotState, Api<RawApi>>) {
       }
     });
     // Configurar sesión con serialización/deserialización para Dates
-    bot.use(
-      session({
-        initial: (): BotSession => ({ 
-          // Valor dummy que será reemplazado por el middleware
-          chatType: "private",
-          createdAt: new Date(0),
-          userData: {
-            id: 0,
-            username: "dummy",
-            firstInteraction: new Date(0)
-          }
-        }),
-        storage: storage,
-      })
-    );
+    //bot.use(
+    //  session({
+    //    initial: undefined,
+    //    storage: storage,
+    //  })
+    //);
+    bot.use(session({ storage }));
+    //order matters, load first initializer
     bot.use(sessionInitializerMiddleware);//middleware to initialize session
+    bot.use(persistenceMiddleware);
     //inititalizes plugin
     bot.use(conversations());
     //register conversation handler

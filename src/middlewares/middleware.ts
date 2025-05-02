@@ -1,7 +1,7 @@
 import type { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 
 import { ERRORS } from "../utils/constants/errors";
-import { GroupData, GroupSession, MyChatMember, PrivateSession, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
+import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import {
     log,
     botHasAdminRights,
@@ -15,52 +15,6 @@ import { getBotState } from "../utils/state";
 import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
 import { CodeEnum } from "../utils/enums";
 
-export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
-    try {
-        log.info("Initializing session...");
-        //session is not initialized
-        if (!ctx.session.chatType) {
-            const chat = await ctx.getChat();
-            const isGroup = chat.type === "group" || chat.type === "supergroup";
-
-            if (isGroup) {
-                ctx.session = {
-                    chatType: "group",
-                    createdAt: new Date(),
-                    groupData: {
-                        blockedUser: undefined,
-                        isBroDeleted: false,
-                        broReplyLevel: "responder",
-                        userBlockLevel: "Bajo",
-                        commandOnlyAdmins: true,
-                        specialHour: undefined,
-                        chatMembers: []
-                    }
-                } satisfies GroupSession;
-            } else {
-                if (!ctx.from) {
-                    throw new Error("No user information in private chat");
-                }
-
-                ctx.session = {
-                    chatType: "private",
-                    createdAt: new Date(),
-                    userData: {
-                        id: ctx.from!.id,
-                        username: ctx.from?.username,
-                        firstInteraction: new Date()
-                    }
-                } satisfies PrivateSession;
-            }
-        }
-    } catch (err) {
-        log.error("Error initializing session");
-        log.trace(ERRORS.TRACE(__filename, __dirname));
-        throw err;
-    }
-    return next();
-};
-
 export const botStatusSetterMiddleware: MiddlewareFn<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("Bot status middleware");
     if (ctx.message?.text?.startsWith("/") && (ctx.message.text !== '/start')) {
@@ -73,6 +27,7 @@ export const botStatusSetterMiddleware: MiddlewareFn<ShutUpContext> = async (ctx
 
 export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
+        log.info("Check Admin Middleware...");
         if(!isGroupSession(ctx.session)) {
             log.warn("Not a group");
             return next();
@@ -118,7 +73,7 @@ export const userIgnoredFilterMiddleware: Middleware<ShutUpContext> = async (ctx
         log.info("User filter middleware");
         if(!isGroupSession(ctx.session)) {
             log.warn("Not a group");
-            return next();
+            return await next();
         }
         const groupData = ctx.session.groupData;
         const userIgnored: string | undefined = groupData.blockedUser;
