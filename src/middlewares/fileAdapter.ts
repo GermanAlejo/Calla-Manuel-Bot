@@ -1,5 +1,5 @@
 import { FileAdapter } from "@grammyjs/storage-file";
-import { BotSession, GroupSession, PrivateSession, ShutUpContext } from "../types/squadTypes";
+import { BotSession, GroupSession, isChatMember, isPrivateUser, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
 import { Middleware, NextFunction } from "grammy";
 import { log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
@@ -51,7 +51,7 @@ export const persistenceMiddleware: Middleware<ShutUpContext> = async (ctx: Shut
 //This function is in charge of initializing the session
 export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
-        log.info("Searach for session");
+        log.info("Search for session");
         const chat = await ctx.getChat();
         const chatId = chat.id.toString();
 
@@ -59,10 +59,8 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
             log.error("Error getting chat");
             return next();
         }
-
         // Verificar si ya existe en persistencia
         const existingSession = await storage.read(chatId);
-
         if (existingSession) {
             log.info("Session exists, returning it");
             ctx.session = existingSession;
@@ -81,7 +79,6 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
             //save session
             ctx.session = newSession;
         }
-
         await next();
         await storage.write(chatId, ctx.session);
     } catch (err) {
@@ -89,7 +86,7 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
         log.error("Error reading session");
         log.trace(ERRORS.TRACE(__filename, __dirname));
         //this is so the bot does not break
-        return next();
+        throw err;
     }
 };
 
@@ -120,4 +117,69 @@ function createGroupSession(chat: Chat): BotSession {
             chatMembers: []
         }
     } as GroupSession;
+}
+
+export async function updateUserInPersistance(chatId: number, user: PrivateUser | MyChatMember) {
+    try {
+        log.info("Saving new changes to persistance");
+        const data = await storage.read(chatId.toString());
+        if (data.chatType === "group" && isChatMember(user)) {
+            const index = data.groupData.chatMembers.findIndex(u => u.id === user.id);
+            if(index === -1) {
+                log.error("user not found in data");
+                throw new Error("User not found in persistance");
+            }
+            data.groupData.chatMembers[index] = user;
+        } else if (data.chatType === "private" && isPrivateUser(user)) {
+            data.userData = user;
+        }
+        await storage.write(chatId.toString(), data);
+    } catch (err) {
+        log.error(err);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+export async function saveNewUserToPersistance(chatId: number, user: PrivateUser | MyChatMember) {
+    try {
+        log.info("Saving new user to persistance");
+        const data = await storage.read(chatId.toString());
+        if (data.chatType === "group" && isChatMember(user)) {
+            log.info("Saving new Member to group");
+            data.groupData.chatMembers.push(user);
+        } else if (data.chatType === "private" && isPrivateUser(user)) {
+            log.info("Saving new private chat");
+            data.userData = user;
+        }
+        await storage.write(chatId.toString(), data);
+    } catch (err) {
+        log.error(err);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+export async function removeMemberFromPersistance(chatId: number, userId: number) {
+    try {
+        const data = await storage.read(chatId.toString());
+        if (data.chatType !== "group") {
+            log.error("Error - removing from private chat");
+            throw new Error("Removing from private chat");
+        }
+        if (data?.groupData?.chatMembers) {
+            // Filtrar y guardar
+            data.groupData.chatMembers =
+                data.groupData.chatMembers.filter(m => m.id !== userId);
+
+            await storage.write(chatId.toString(), data);
+        }
+    } catch (error) {
+        log.error(error);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw error;
+    }
 }

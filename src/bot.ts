@@ -74,9 +74,7 @@ async function startBot(bot: Bot<ShutUpContext & BotState, Api<RawApi>>) {
     bot.use(createConversation(startNewDebt));
     bot.use(rateLimitMiddleware);
     bot.use(botStatusMiddleware);
-    //bot.use(botStatusSetterMiddleware);
-    bot.use(userIgnoredFilterMiddleware);
-    bot.on('message', groupUserStatusMiddleware);
+    //bot.on('message', userIgnoredFilterMiddleware);
     bot.on('chat_member', groupUserStatusMiddleware);
     bot.use(adminCommands);
     bot.use(memberCommands);

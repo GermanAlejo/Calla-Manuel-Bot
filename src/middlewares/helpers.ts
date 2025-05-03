@@ -1,4 +1,4 @@
-import { BotSession, BotState, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
+import { BotSession, BotState, GroupData, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
 import { Bot } from "grammy";
 import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
 import { broRegex, buenosDiasRegex, log } from "../utils/common";
@@ -7,18 +7,19 @@ import { GENERAL } from "../utils/constants/messages";
 import { CodeEnum } from "../utils/enums";
 import { getBotState } from "../utils/state";
 import { User } from "grammy/types";
+import { removeMemberFromPersistance, saveNewUserToPersistance, updateUserInPersistance } from "./fileAdapter";
 
 export function isGroupSession(
     session: BotSession
-  ): session is BotSession & { chatType: "group" } {
+): session is BotSession & { chatType: "group" } {
     return session.chatType === "group";
-  }
-  
-  export function isPrivateSession(
+}
+
+export function isPrivateSession(
     session: BotSession
-  ): session is BotSession & { chatType: "private" } {
+): session is BotSession & { chatType: "private" } {
     return session.chatType === "private";
-  }
+}
 
 export function runBotResponses(bot: Bot<ShutUpContext & BotState>) {
     try {
@@ -56,27 +57,37 @@ export function runBotSalutations(bot: Bot<ShutUpContext & BotState>) {
  * @param ctx 
  * @param user 
  */
-export function saveNewUser(ctx: ShutUpContext, user: User) {
+export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "left" | "kicked" | "creator" | "administrator" | "member") {
     log.info("Saving new user to session");
     try {
+        const chatId = ctx.chat?.id;
+        if (!chatId) {
+            log.error("Error getting chatId");
+            throw new Error("Error getting chatId when saving user");
+        }
         if (isGroupSession(ctx.session)) {
             log.info("Saving new user to group");
             const newUser: MyChatMember = {
                 id: user.id,
-                status: "member",
+                status: newStatus,
                 username: user.username || "unknown",
                 greetingCount: 0,
-                joinedAt: new Date()
+                joinedAt: new Date(),
+                isAdmin: false
             }
             ctx.session.groupData.chatMembers.push(newUser);
+            //save changes to persistance here
+            await saveNewUserToPersistance(chatId, newUser);
         } else if (isPrivateSession(ctx.session)) {
-            log.info("Saving new alone user"); 
+            log.info("Saving new alone user");
             const newUser: PrivateUser = {
                 id: user.id,
                 firstInteraction: new Date(),
                 username: user.username
             }
             ctx.session.userData = newUser;
+            //save changes to persistance
+            await saveNewUserToPersistance(chatId, newUser);
         }
     } catch (err) {
         log.error(ERRORS.ERROR_READING_USER);
@@ -84,3 +95,53 @@ export function saveNewUser(ctx: ShutUpContext, user: User) {
         throw err;
     }
 }
+
+export async function handleNewUser(ctx: ShutUpContext, user: User, groupData: GroupData, newStatus: "left" | "kicked" | "creator" | "administrator" | "member") {
+    try {
+        //Comprobar si existe el usuario 
+        const existingMember = groupData.chatMembers.find((m) => m.username === user.username);
+        if (existingMember) {
+            log.warn("User was already in persistance");
+            return;
+        }
+        log.info("User was not saved in persistance, saving...");
+        await saveNewUser(ctx, user, newStatus);
+        return;
+    } catch (err) {
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+export async function handleUserLeaves(user: User, groupData: GroupData, chatId: number) {
+    try {
+        //Comprobar si existe y eliminarlo de la session 
+        const updatedMembers = groupData.chatMembers.filter(m => m.username === user.username);
+        //guardar cambios en la persistencia
+        await removeMemberFromPersistance(chatId, user.id);
+        return updatedMembers;
+    } catch (err) {
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+export async function updateAdminPriviledges(groupData: GroupData, userId: number, chatId: number, willAdmin: boolean) {
+    try {
+        log.info("Changing admin rights to: " + willAdmin);
+        const user = groupData.chatMembers.find(m => m.id === userId);
+        if(!user) {
+            log.error("User not found in session");
+            throw new Error("User not found");
+        }
+        user.isAdmin = willAdmin;
+        await updateUserInPersistance(chatId, user);
+    } catch (err) {
+        log.error(ERRORS.ERROR_READING_USER);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+

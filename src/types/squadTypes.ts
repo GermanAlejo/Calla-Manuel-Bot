@@ -3,9 +3,9 @@ import type { Context, SessionFlavor } from "grammy";
 import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 
 //tipo base de la session
-export type BotSession = 
-  | (PrivateSession & { chatType: "private" })
-  | (GroupSession & { chatType: "group" });
+export type BotSession =
+    | (PrivateSession & { chatType: "private" })
+    | (GroupSession & { chatType: "group" });
 
 //contexto base con todas las extensiones
 export type BaseContext = Context & SessionFlavor<BotSession>;
@@ -28,10 +28,11 @@ export interface PrivateUser {
 export interface MyChatMember {
     id: number;
     username: string;
-    status: "member" | "left" | "kicked" | "administrator"; //this field possible values match grammys
+    status: "member" | "left" | "kicked" | "administrator" | "creator"; //this field possible values match grammys
     greetingCount: number;
     joinedAt?: Date;
-}
+    isAdmin: boolean;
+}        
 
 export interface Debt {
     name: string;
@@ -71,4 +72,29 @@ export interface RateLimitOptions {
     limit: number; // Máximo de solicitudes permitidas
     timeWindow: number; // Ventana de tiempo en milisegundos
     onLimitExceeded?: (ctx: Context) => Promise<void> | void; // Callback para manejar cuando el límite se excede
+}
+
+//TypeGuards
+// Type guard para PrivateUser
+export function isPrivateUser(obj: any): obj is PrivateUser {
+    return (
+        typeof obj === "object" &&
+        typeof obj.id === "number" &&
+        (typeof obj.username === "string" || obj.username === undefined) &&
+        obj.firstInteraction instanceof Date
+    );
+}
+
+// Type guard para MyChatMember
+export function isChatMember(obj: any): obj is MyChatMember {
+    const validStatuses = ["member", "left", "kicked", "administrator", "owner"];
+    return (
+        typeof obj === "object" &&
+        typeof obj.id === "number" &&
+        typeof obj.username === "string" &&
+        validStatuses.includes(obj.status) &&
+        typeof obj.greetingCount === "number" &&
+        (obj.joinedAt === undefined || obj.joinedAt instanceof Date) &&
+        typeof obj.isAdmin === "boolean"
+    );
 }

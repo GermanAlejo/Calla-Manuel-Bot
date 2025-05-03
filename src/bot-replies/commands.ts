@@ -4,7 +4,7 @@ import type { Context, NextFunction } from "grammy";
 import type { HashFiles } from "../utils/common";
 
 import { gifFiles, helpText, log, voiceFiles, scheduleMessage } from "../utils/common";
-import { getBotState, setBotState } from "../utils/state";
+import { getBotState, getHoraState, setBotState, setHoraState } from "../utils/state";
 import { AUDIO, GIFS } from "../utils/constants/files";
 import { ERRORS } from "../utils/constants/errors";
 import { BotState, ShutUpContext } from "../types/squadTypes";
@@ -14,9 +14,9 @@ export const memberCommands = new Composer<ShutUpContext & BotState>();
 // Reacts to /start commands
 memberCommands.command('start', async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("Start Command...");
-    const chatId: number | undefined = ctx.chat?.id;
-    if(chatId) {
-        scheduleMessage(ctx, chatId, "Feliz hora coño");
+    if(!getHoraState()) {
+        scheduleMessage(ctx, "Feliz hora coño");
+        setHoraState(!getHoraState());
     }
     if (getBotState()) {
         log.info("Bot is already active");

@@ -1,15 +1,14 @@
 import { IGNORE_STATES } from "../utils/constants/general";
-import { GroupData, ShutUpContext } from "../types/squadTypes";
+import { BotState, GroupData, ShutUpContext } from "../types/squadTypes";
 import { Composer, NextFunction } from "grammy";
 import { botHasAdminRights, log, MUTED_TIME } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { checkAdminMiddleware } from "../middlewares/middleware";
 import { isGroupSession } from "../middlewares/helpers";
 
-export const adminCommands = new Composer<ShutUpContext>();
-adminCommands.use(checkAdminMiddleware);
+export const adminCommands = new Composer<ShutUpContext & BotState>();
 
-adminCommands.command('fueraBros', async (ctx: ShutUpContext) => {
+adminCommands.command('fuerabros', checkAdminMiddleware, async (ctx: ShutUpContext) => {
     if(!isGroupSession(ctx.session)) {
         log.warn("Not a group");
         return;
@@ -26,7 +25,7 @@ adminCommands.command('fueraBros', async (ctx: ShutUpContext) => {
 });
 
 //Lets use this function to set the bros response as well
-adminCommands.command('setlevel', async (ctx: ShutUpContext, next: NextFunction) => {
+adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("setting the level of response...");
     try {
         if (!isGroupSession(ctx.session)) {

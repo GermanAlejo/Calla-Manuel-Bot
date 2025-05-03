@@ -1,64 +1,50 @@
-import type { Bot, Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
+import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 
 import { ERRORS } from "../utils/constants/errors";
 import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import {
     log,
-    botHasAdminRights,
-    broRegex,
-    buenosDiasRegex
+    botHasAdminRights
 } from "../utils/common";
-import { ChatMember, User } from "grammy/types";
+import { User } from "grammy/types";
 import { IGNORE_STATES } from "../utils/constants/general";
-import { isGroupSession, saveNewUser } from "./helpers";
-import { getBotState } from "../utils/state";
-import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
-import { CodeEnum } from "../utils/enums";
+import { handleNewUser, handleUserLeaves, isGroupSession, updateAdminPriviledges } from "./helpers";
 
-export const botStatusSetterMiddleware: MiddlewareFn<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
-    log.info("Bot status middleware");
-    if (ctx.message?.text?.startsWith("/") && (ctx.message.text !== '/start')) {
-        return await ctx.reply("🔴 Bot desactivado. Usa /start para reactivar.");
-    } else if (ctx.message?.text?.match(/^\/(start|stop)/)) {
-        return next();
-    }
-    return next();
-};
-
+/**
+ * This function middleware should work with admin comands ensuring only admins can use them
+ * @param ctx 
+ * @param next 
+ * @returns 
+ */
 export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
         log.info("Check Admin Middleware...");
-        if(!isGroupSession(ctx.session)) {
-            log.warn("Not a group");
+        if (!isGroupSession(ctx.session)) {
+            log.info("Not a group, we allow to use");
             return next();
         }
         log.info("Checking if admin middleware");
         const groupData: GroupData = ctx.session.groupData;
         if (!groupData.commandOnlyAdmins) {
             //we cancel as this function is deactivated
-            return next();
+            log.info("Admin commands only is deactivated")
+            return;
         }
         //last user that send a message
         const caller: User | undefined = ctx.from;
         if (!caller || !caller.username) {
             log.error("No user found");
-            return next();
+            return;
         }
         let user: MyChatMember | undefined = groupData.chatMembers.find((m) => m.username === caller.username);
         //if it does not exists save it
-        if (!user) {
-            log.error("User is not in session");
-            saveNewUser(ctx, caller);
-            return next();
+        if (!user || user.status === "administrator") {
+            log.info("User has no admin rights or is not found");
+            await ctx.reply(`❌ Idiota tu no tienes permiso para usar este comando! ❌`);
+            return;
         }
-        if (user.status === "administrator") {
-            log.info("User has admin rights");
-            //do nothing allow to continue
-            return next();
-        } else {
-            log.info("This user has no admin rights");
-            return ctx.reply(`Idiota tu no tienes permiso para usar este comando!`);
-        }
+        //allow middleware to continue
+        return next();
     } catch (err) {
         log.error(err);
         log.error(ERRORS.ERROR_READING_USER);
@@ -68,12 +54,20 @@ export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
     }
 }
 
+/**
+ * We will replace this middleware, so we check whether the user is to ignored or the creator, and act accordinly,
+ * also if the user is not saved in persistance, save it
+ * This middleware should ensure an ignore user cannot use the bot
+ * @param ctx 
+ * @param next 
+ * @returns 
+ */
 export const userIgnoredFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
         log.info("User filter middleware");
-        if(!isGroupSession(ctx.session)) {
+        if (!isGroupSession(ctx.session)) {
             log.warn("Not a group");
-            return await next();
+            return;
         }
         const groupData = ctx.session.groupData;
         const userIgnored: string | undefined = groupData.blockedUser;
@@ -123,64 +117,55 @@ export const userIgnoredFilterMiddleware: Middleware<ShutUpContext> = async (ctx
 export const groupUserStatusMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("User status middleware");
     try {
-        if(!isGroupSession(ctx.session)) {
+        if (!isGroupSession(ctx.session)) {
             log.warn("Not a group");
-            return next();
+            return;
         }
         const groupData = ctx.session.groupData;
-        const newMember: ChatMember | undefined = ctx.chatMember?.new_chat_member;
-        if (!newMember) {
-            log.error("Empty member in context");
-            return next();
+        const chat = ctx.chat;
+        const update = ctx.chatMember!;
+        const user = update.new_chat_member.user;
+        const oldStatus = update.old_chat_member.status;
+        const newStatus = update.new_chat_member.status;
+
+        if (!chat || chat.id) {
+            log.error("Chat is undefined...");
+            throw new Error("Chat is undefined");
         }
 
-        const newUser: User | undefined = newMember.user;
-        if (!newUser) {
-            log.error("Empty user in context");
-            return next();
+        //handle new user
+        if ((oldStatus === "left" || oldStatus === "kicked" || oldStatus === "creator") &&
+            (newStatus === "member" || newStatus === "administrator" || newStatus === "creator")) {
+            log.info("New user detected, saving new user");
+            await handleNewUser(ctx, user, groupData, newStatus);
+            log.info(`${user.username} ha entrado al grupo.`);
+            return await ctx.reply(`¡Vaya otro imbecil, @${user.username}!`);
         }
 
-        //user joins or is promoted to admin
-        if (newMember?.status === 'member' || newMember.status === 'administrator') {
-            //Comprobar si existe el usuario
-            const existingMember = groupData.chatMembers.find((m) => {
-                m.username === newUser.username;
-            });
+        //User leaves the group
+        if ((newStatus === "left" || newStatus === "kicked") && (oldStatus === "member" || oldStatus === "administrator" || oldStatus === "creator")) {
+            log.info("User leaved the group...");
+            const newMembersList = await handleUserLeaves(user, groupData, chat?.id);
+            //guardar en session lista actualizada
+            ctx.session.groupData.chatMembers = newMembersList;
+            log.info(`${user.username} ha dejado el grupo.`);
+            return await ctx.reply(`👋 Adiós @${user.username} 😢`);
+        }
 
-            //it is new
-            if (existingMember) {
-                existingMember.status = existingMember.status;
-                existingMember.greetingCount = 0;
-                existingMember.joinedAt = new Date();
-            } else {
-                groupData.chatMembers.push({
-                    username: newUser.username || "unknown",
-                    status: newMember.status,
-                    greetingCount: 0,
-                    id: newUser.id,
-                    joinedAt: new Date()
-                });
-            }
-
-            log.info(`${newUser.username} ha entrado al grupo.`);
-            return await ctx.reply(`¡Vaya otro imbecil, @${newUser.username}!`);
-            //user left the chat
-        } else if (newMember.status === 'left') {
-            const memberIndex = groupData.chatMembers.findIndex((m) => m.username === newUser.username);
-            if (memberIndex !== -1) {
-                log.info(`${newUser.username} ha dejado el grupo. 😢`);
-                groupData.chatMembers[memberIndex].status = newMember.status;
-                return await ctx.reply(`Adiós @${newUser.username} `);
-            }
-        } else if (newMember.status === 'kicked') { //user is kicked
-            const memberIndex = groupData.chatMembers.findIndex((m) => m.username === newUser.username);
-            if (memberIndex !== -1) {
-                log.info(`${newUser.username} ha sido kickeado.`);
-                groupData.chatMembers[memberIndex].status = newMember.status;
-                return await ctx.reply(`Adiós @${newUser.username}, vete a tomar por culo!`);
+        //change in status
+        if (oldStatus !== newStatus) {
+            log.info("Current user changed status");
+            if (newStatus == "administrator") {
+                log.info("User is not admin");
+                await updateAdminPriviledges(groupData, user.id, chat.id, true);
+                return await ctx.reply(`👑 @${user.username} es ahora administrador!`);
+            } else if (oldStatus === "administrator") {
+                log.info("User is admin no more");
+                await updateAdminPriviledges(groupData, user.id, chat.id, false);
+                return await ctx.reply(`😢 @${user.username} ya no es administrador`);
             }
         }
-        return next();
+        return;
     } catch (err) {
         log.error(err)
         log.error(ERRORS.ERROR_READING_USER);
@@ -197,7 +182,7 @@ export const requestRateLimitMiddleware = (options: RateLimitOptions): Middlewar
     return async (ctx: Context, next: NextFunction) => {
         const isCommand = ctx.message?.text?.charAt(0);
         if (isCommand !== '/') {
-            log.warn("The request is not a command!");
+            log.info("The request is not a command!");
             return next();
         }
         const userId = ctx.from?.id;
@@ -232,36 +217,5 @@ export const requestRateLimitMiddleware = (options: RateLimitOptions): Middlewar
         }
         return next();
     };
-}
-
-export function runBotResponses(bot: Bot<ShutUpContext>) {
-    try {
-        if(getBotState()) {
-            bot.hears(broRegex, async (ctx: ShutUpContext) => {
-                await noBroHere(ctx);
-                return;
-            });
-        }
-        return;
-    } catch (err) {
-        log.error(ERRORS.ERROR_READING_USER);
-        log.trace(ERRORS.TRACE(__filename, __dirname));
-        throw err;
-    }
-}
-
-export function runBotSalutations(bot: Bot<ShutUpContext>) {
-    try {
-        if (buenosDiasRegex.length > 1 && getBotState()) {
-            bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: ShutUpContext) => await buenosDias(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.tardeCode], async (ctx: ShutUpContext) => await buenasTardes(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.nocheCode], async (ctx: ShutUpContext) => await buenasNoches(ctx));
-            bot.hears(buenosDiasRegex[CodeEnum.holaCode], async (ctx: ShutUpContext) => await paTiMiCola(ctx));
-        }
-    } catch (err) {
-        log.error(ERRORS.ERROR_READING_USER);
-        log.trace(ERRORS.TRACE(__filename, __dirname));
-        throw err;
-    }
 }
 

@@ -53,7 +53,9 @@ export const allCommands = [
     { command: "alechupa", description: "El Ale la chupa" },
     { command: "fernando", description: "DA LA CARA FERNANDO" },
     { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
-    { command: "fueraBros", description: "Elimina todos los mensajes con bros en el grupo" }
+    { command: "fueraBros", description: "Elimina todos los mensajes con bros en el grupo" },
+    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion"}
+
 ];
 
 export const helpText = `
@@ -196,7 +198,7 @@ function getMediaDir() {
     return mediaPath;
 }
 
-export function scheduleMessage(ctx: ShutUpContext, chatId: number, message: string) {
+export function scheduleMessage(ctx: ShutUpContext, message: string) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
@@ -214,6 +216,11 @@ export function scheduleMessage(ctx: ShutUpContext, chatId: number, message: str
 
     // Usa setTimeout para programar el primer mensaje
     setTimeout(async () => {
+        const chatId = ctx.chat?.id;
+        if(!chatId) {
+            log.error("Chat not found in context");
+            throw new Error("Could not schedule message");
+        }
         // Envía el mensaje
         await ctx.api.sendMessage(chatId, message);
         log.info("Sending Message");
