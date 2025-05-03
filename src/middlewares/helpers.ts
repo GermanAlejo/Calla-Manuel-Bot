@@ -1,13 +1,14 @@
 import { BotSession, BotState, GroupData, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
-import { Bot } from "grammy";
+import { Bot, NextFunction } from "grammy";
 import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
-import { broRegex, buenosDiasRegex, log } from "../utils/common";
+import { botHasAdminRights, broRegex, buenosDiasRegex, log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { GENERAL } from "../utils/constants/messages";
 import { CodeEnum } from "../utils/enums";
 import { getBotState } from "../utils/state";
 import { User } from "grammy/types";
 import { removeMemberFromPersistance, saveNewUserToPersistance, updateUserInPersistance } from "./fileAdapter";
+import { IGNORE_STATES } from "../utils/constants/general";
 
 export function isGroupSession(
     session: BotSession
@@ -48,6 +49,33 @@ export function runBotSalutations(bot: Bot<ShutUpContext & BotState>) {
         log.error(ERRORS.ERROR_READING_USER);
         log.trace(ERRORS.TRACE(__filename, __dirname));
         throw err;
+    }
+}
+
+export async function filterIgnoredUser(ctx: ShutUpContext, next: NextFunction, userIgnored: string, level: string) {
+    log.info("User to be ignored found");
+    switch (level) {
+        case IGNORE_STATES.low:
+            log.info("Low lever not affectig user, doing nothing");
+            return next();
+        case IGNORE_STATES.medium:
+            log.info("Mid level ignore, replying to user...");
+            log.info("Blocking user: " + userIgnored);
+            await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+            return;
+        case IGNORE_STATES.high:
+            if (await botHasAdminRights(ctx)) {
+                //this requires checking
+                log.info("Highest level, deleting user...");
+                await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                await ctx.deleteMessage();
+                return;
+            }
+            log.warn("Bot does not have admin rights");
+            return next();
+        default:
+            log.warn("Error filtering ignored user...");
+            return next();
     }
 }
 
@@ -132,7 +160,7 @@ export async function updateAdminPriviledges(groupData: GroupData, userId: numbe
     try {
         log.info("Changing admin rights to: " + willAdmin);
         const user = groupData.chatMembers.find(m => m.id === userId);
-        if(!user) {
+        if (!user) {
             log.error("User not found in session");
             throw new Error("User not found");
         }

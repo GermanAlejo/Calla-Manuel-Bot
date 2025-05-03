@@ -5,7 +5,7 @@ import config from './utils/config';
 import { allCommands, log, prepareMediaFiles } from './utils/common';
 import { memberCommands } from "./bot-replies/commands";
 import { setBotState, botStatusMiddleware } from "./utils/state";
-import { requestRateLimitMiddleware, userIgnoredFilterMiddleware, groupUserStatusMiddleware } from "./middlewares/middleware";
+import { requestRateLimitMiddleware, groupUserStatusMiddleware, userFilterMiddleware } from "./middlewares/middleware";
 import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
@@ -74,7 +74,7 @@ async function startBot(bot: Bot<ShutUpContext & BotState, Api<RawApi>>) {
     bot.use(createConversation(startNewDebt));
     bot.use(rateLimitMiddleware);
     bot.use(botStatusMiddleware);
-    //bot.on('message', userIgnoredFilterMiddleware);
+    bot.on('message', userFilterMiddleware);
     bot.on('chat_member', groupUserStatusMiddleware);
     bot.use(adminCommands);
     bot.use(memberCommands);

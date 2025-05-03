@@ -3,12 +3,11 @@ import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 import { ERRORS } from "../utils/constants/errors";
 import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import {
-    log,
-    botHasAdminRights
+    log
 } from "../utils/common";
 import { User } from "grammy/types";
-import { IGNORE_STATES } from "../utils/constants/general";
-import { handleNewUser, handleUserLeaves, isGroupSession, updateAdminPriviledges } from "./helpers";
+import { filterIgnoredUser, handleNewUser, handleUserLeaves, isGroupSession, updateAdminPriviledges } from "./helpers";
+import { saveNewUserToPersistance } from "./fileAdapter";
 
 /**
  * This function middleware should work with admin comands ensuring only admins can use them
@@ -62,44 +61,74 @@ export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
  * @param next 
  * @returns 
  */
-export const userIgnoredFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
+export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
         log.info("User filter middleware");
         if (!isGroupSession(ctx.session)) {
-            log.warn("Not a group");
-            return;
+            log.warn("Not a group - continue");
+            return next();
         }
+        const chatId = ctx.chat?.id;
+        if (!chatId) {
+            log.error("Error with chat in filter");
+            throw new Error("Error with chat in filter");
+        }
+        const caller = ctx.from;
         const groupData = ctx.session.groupData;
         const userIgnored: string | undefined = groupData.blockedUser;
         const level: string = groupData.userBlockLevel;
-        if (userIgnored && ctx.from?.username === userIgnored) {
-            switch (level) {
-                case IGNORE_STATES.low:
-                    log.info("Low lever not affectig user, doing nothing");
-                    return next();
-                case IGNORE_STATES.medium:
-                    log.info("Mid level ignore, replying to user...");
-                    log.info("Blocking user: " + userIgnored);
-                    return await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
-                case IGNORE_STATES.high:
-                    if (await botHasAdminRights(ctx)) {
-                        //this requires checking
-                        log.info("Highest level, deleting user...");
-                        await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
-                        return await ctx.deleteMessage();
-                    }
-                    log.warn("Bot does not have admin rights");
-                    return next();
-                default:
-                    log.error("Error filering user...");
-                    log.trace(ERRORS.TRACE(__filename, __dirname));
-                    throw new Error("Value not recognized");
+
+        if (!caller) {
+            log.error("Error with user filter");
+            throw new Error("Error in filter");
+        }
+        //set the status
+        const status = (await ctx.getChatMember(caller?.id)).status;
+
+        //Search the user in the group
+        if (status === "creator") {
+            //check if user exists
+            const user = groupData.chatMembers.find(u => u.id === caller.id);
+            //if the user is not saved we save it, in other case we skip
+            if (!user) {
+                const newUser: MyChatMember = {
+                    id: caller.id,
+                    status: status,
+                    username: caller.username || "unknown",
+                    greetingCount: 0,
+                    joinedAt: new Date(),
+                    isAdmin: true
+                }
+                //save creator user
+                await saveNewUserToPersistance(chatId, newUser);
+            }
+        } else if (status === "member") {
+            //check if user exists
+            const user = groupData.chatMembers.find(u => u.id === caller.id);
+            if (!user) {
+                const newUser: MyChatMember = {
+                    id: caller.id,
+                    status: status,
+                    username: caller.username || "unknown",
+                    greetingCount: 0,
+                    joinedAt: new Date(),
+                    isAdmin: false
+                }
+                //save user
+                await saveNewUserToPersistance(chatId, newUser);
+            }
+            //now we check if the user is the one to be ignored
+            if (!userIgnored) {
+                log.info("The blocked user is disabled/no user set");
+                return next();
+            }
+            if (userIgnored === user?.username) {
+                return await filterIgnoredUser(ctx, next, userIgnored, level);
             }
         }
-        log.info("No user being ignored...");
         return next();
     } catch (err) {
-        log.error(err);
+        log.error("Error in user ignore middleware");
         log.error(ERRORS.ERROR_READING_USER);
         log.trace(ERRORS.TRACE(__filename, __dirname));
         //this is so the bot does not break

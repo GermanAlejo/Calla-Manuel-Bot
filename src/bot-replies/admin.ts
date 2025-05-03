@@ -25,6 +25,7 @@ adminCommands.command('fuerabros', checkAdminMiddleware, async (ctx: ShutUpConte
 });
 
 //Lets use this function to set the bros response as well
+//TODO: change this to a conversation
 adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("setting the level of response...");
     try {
