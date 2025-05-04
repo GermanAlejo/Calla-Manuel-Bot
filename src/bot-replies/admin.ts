@@ -1,12 +1,11 @@
 import { IGNORE_STATES } from "../utils/constants/general";
-import { BotState, GroupData, ShutUpContext } from "../types/squadTypes";
+import { GroupData, ShutUpContext, isGroupSession } from "../types/squadTypes";
 import { Composer, NextFunction } from "grammy";
 import { botHasAdminRights, log, MUTED_TIME } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { checkAdminMiddleware } from "../middlewares/middleware";
-import { isGroupSession } from "../middlewares/helpers";
 
-export const adminCommands = new Composer<ShutUpContext & BotState>();
+export const adminCommands = new Composer<ShutUpContext>();
 
 adminCommands.command('fuerabros', checkAdminMiddleware, async (ctx: ShutUpContext) => {
     if(!isGroupSession(ctx.session)) {

@@ -95,6 +95,7 @@ function createPrivateSession(user: User): BotSession {
     return {
         chatType: "private",
         createdAt: new Date(),
+        isBotActive: true,
         userData: {
             id: user.id,
             username: user.username,
@@ -107,6 +108,7 @@ function createGroupSession(chat: Chat): BotSession {
     return {
         chatType: "group",
         createdAt: new Date(),
+        isBotActive: true,
         groupData: {
             blockedUser: undefined,
             isBroDeleted: false,

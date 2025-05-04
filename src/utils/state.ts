@@ -1,5 +1,5 @@
 import { log } from "./common";
-import { ShutUpContext, BotState } from "../types/squadTypes";
+import { ShutUpContext } from "../types/squadTypes";
 import { MiddlewareFn, NextFunction } from "grammy";
 
 let isBotActive = true;
@@ -21,8 +21,8 @@ export function getHoraState(): boolean {
     return isHoraSet;
 }
 
-export const botStatusMiddleware: MiddlewareFn<ShutUpContext & BotState> = async (ctx: ShutUpContext & BotState, next: NextFunction) => {
+export const botStatusMiddleware: MiddlewareFn<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("Iyecting global state to context");
-    ctx.isBotActive = isBotActive;
+    ctx.session.isBotActive = isBotActive;
     return next();
 }

@@ -7,16 +7,11 @@ export type BotSession =
     | (PrivateSession & { chatType: "private" })
     | (GroupSession & { chatType: "group" });
 
-//contexto base con todas las extensiones
-export type BaseContext = Context & SessionFlavor<BotSession>;
-
 // Extender el contexto de Grammy con la sesión
-export type ShutUpContext = BaseContext & ConversationFlavor<Context>;
-
-//Type for conversation
-export type ShutUpConversationContext = BaseContext;
+export type ShutUpContext = Context & SessionFlavor<BotSession> & ConversationFlavor<Context>;
 
 //Tipo para conversaciones
+export type ShutUpConversationContext = ShutUpContext;
 export type ShutUpConversation = Conversation<ShutUpContext, ShutUpConversationContext>;
 
 export interface PrivateUser {
@@ -32,7 +27,7 @@ export interface MyChatMember {
     greetingCount: number;
     joinedAt?: Date;
     isAdmin: boolean;
-}        
+}
 
 export interface Debt {
     name: string;
@@ -52,6 +47,7 @@ export interface GroupData {
 export interface BaseSession {
     chatType: "private" | "group";
     createdAt: Date;
+    isBotActive: boolean;
 }
 
 export interface GroupSession extends BaseSession {
@@ -64,10 +60,6 @@ export interface PrivateSession extends BaseSession {
     userData: PrivateUser;
 }
 
-export interface BotState {
-    isBotActive: boolean;
-}
-
 export interface RateLimitOptions {
     limit: number; // Máximo de solicitudes permitidas
     timeWindow: number; // Ventana de tiempo en milisegundos
@@ -75,6 +67,14 @@ export interface RateLimitOptions {
 }
 
 //TypeGuards
+export function isGroupSession(session: BotSession | undefined): session is GroupSession {
+    return session?.chatType === "group";
+}
+
+export function isPrivateSession(session: BotSession | undefined): session is PrivateSession {
+    return session?.chatType === "private";
+}
+
 // Type guard para PrivateUser
 export function isPrivateUser(obj: any): obj is PrivateUser {
     return (

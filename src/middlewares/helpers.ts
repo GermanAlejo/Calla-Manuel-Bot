@@ -1,4 +1,4 @@
-import { BotSession, BotState, GroupData, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
+import { GroupData, isGroupSession, isPrivateSession, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
 import { Bot, NextFunction } from "grammy";
 import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
 import { botHasAdminRights, broRegex, buenosDiasRegex, log } from "../utils/common";
@@ -10,19 +10,7 @@ import { User } from "grammy/types";
 import { removeMemberFromPersistance, saveNewUserToPersistance, updateUserInPersistance } from "./fileAdapter";
 import { IGNORE_STATES } from "../utils/constants/general";
 
-export function isGroupSession(
-    session: BotSession
-): session is BotSession & { chatType: "group" } {
-    return session.chatType === "group";
-}
-
-export function isPrivateSession(
-    session: BotSession
-): session is BotSession & { chatType: "private" } {
-    return session.chatType === "private";
-}
-
-export function runBotResponses(bot: Bot<ShutUpContext & BotState>) {
+export function runBotResponses(bot: Bot<ShutUpContext>) {
     try {
         if (getBotState()) {
             bot.hears(broRegex, async (ctx: ShutUpContext) => noBroHere(ctx));
@@ -37,7 +25,7 @@ export function runBotResponses(bot: Bot<ShutUpContext & BotState>) {
     }
 }
 
-export function runBotSalutations(bot: Bot<ShutUpContext & BotState>) {
+export function runBotSalutations(bot: Bot<ShutUpContext>) {
     try {
         if (buenosDiasRegex.length > 1 && getBotState()) {
             bot.hears(buenosDiasRegex[CodeEnum.mediaNocheCode], async (ctx: ShutUpContext) => await buenosDias(ctx));

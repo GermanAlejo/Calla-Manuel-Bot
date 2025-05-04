@@ -9,14 +9,14 @@ import { requestRateLimitMiddleware, groupUserStatusMiddleware, userFilterMiddle
 import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
-import { ShutUpContext, BotState } from "./types/squadTypes";
+import { ShutUpContext } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
 import { persistenceMiddleware, sessionInitializerMiddleware, storage } from "./middlewares/fileAdapter";
 import { conversations, createConversation } from "@grammyjs/conversations";
 import { startNewDebt } from "./bot-replies/conversations";
 
 // Create a bot object
-const shutUpBot: Bot<ShutUpContext & BotState> = new Bot<ShutUpContext & BotState>(config.botToken); // <-- place your bot token in this string
+const shutUpBot = new Bot<ShutUpContext>(config.botToken); // <-- place your bot token in this string
 
 startBot(shutUpBot)
   .then(() => {
@@ -41,7 +41,7 @@ try {
   throw err;
 }
 
-async function startBot(bot: Bot<ShutUpContext & BotState, Api<RawApi>>) {
+async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
   try {
     if (bot instanceof Error) {
       throw new Error(ERRORS.LAUNCH_ERROR);

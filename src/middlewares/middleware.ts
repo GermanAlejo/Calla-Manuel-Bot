@@ -1,12 +1,12 @@
 import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 
 import { ERRORS } from "../utils/constants/errors";
-import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
+import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext, isGroupSession } from "../types/squadTypes";
 import {
     log
 } from "../utils/common";
 import { User } from "grammy/types";
-import { filterIgnoredUser, handleNewUser, handleUserLeaves, isGroupSession, updateAdminPriviledges } from "./helpers";
+import { filterIgnoredUser, handleNewUser, handleUserLeaves, updateAdminPriviledges } from "./helpers";
 import { saveNewUserToPersistance } from "./fileAdapter";
 
 /**

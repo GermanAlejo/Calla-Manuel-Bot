@@ -7,9 +7,9 @@ import { gifFiles, helpText, log, voiceFiles, scheduleMessage } from "../utils/c
 import { getBotState, getHoraState, setBotState, setHoraState } from "../utils/state";
 import { AUDIO, GIFS } from "../utils/constants/files";
 import { ERRORS } from "../utils/constants/errors";
-import { BotState, ShutUpContext } from "../types/squadTypes";
+import { ShutUpContext } from "../types/squadTypes";
 
-export const memberCommands = new Composer<ShutUpContext & BotState>();
+export const memberCommands = new Composer<ShutUpContext>();
 
 // Reacts to /start commands
 memberCommands.command('start', async (ctx: ShutUpContext, next: NextFunction) => {
