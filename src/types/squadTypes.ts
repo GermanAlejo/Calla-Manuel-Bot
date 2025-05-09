@@ -98,3 +98,9 @@ export function isChatMember(obj: any): obj is MyChatMember {
         typeof obj.isAdmin === "boolean"
     );
 }
+
+export interface DebtSelectionState {
+    selectedMembers: number[]; //ids
+    currentPage: number;
+    allMembers: number[] //all members
+}
