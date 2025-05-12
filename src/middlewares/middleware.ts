@@ -1,11 +1,10 @@
 import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
+import type { User } from "grammy/types";
 
 import { ERRORS } from "../utils/constants/errors";
-import { GroupData, MyChatMember, RateLimitOptions, ShutUpContext, isGroupSession } from "../types/squadTypes";
-import {
-    log
-} from "../utils/common";
-import { User } from "grammy/types";
+import type { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
+import { isGroupSession } from "../types/squadTypes";
+import { log } from "../utils/common";
 import { filterIgnoredUser, handleNewUser, handleUserLeaves, updateAdminPriviledges } from "./helpers";
 import { saveNewUserToPersistance } from "./fileAdapter";
 
@@ -35,7 +34,7 @@ export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
             log.error("No user found");
             return;
         }
-        let user: MyChatMember | undefined = groupData.chatMembers.find((m) => m.username === caller.username);
+        const user: MyChatMember | undefined = groupData.chatMembers.find((m) => m.username === caller.username);
         //if it does not exists save it
         if (!user || user.status === "administrator") {
             log.info("User has no admin rights or is not found");
@@ -132,7 +131,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         log.error(ERRORS.ERROR_READING_USER);
         log.trace(ERRORS.TRACE(__filename, __dirname));
         //this is so the bot does not break
-        return next();
+        throw err;
     }
 };
 
@@ -144,8 +143,8 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
  * @returns 
  */
 export const groupUserStatusMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
-    log.info("User status middleware");
     try {
+        log.info("User status middleware");
         if (!isGroupSession(ctx.session)) {
             log.warn("Not a group");
             return;

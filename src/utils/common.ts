@@ -5,13 +5,13 @@ import type { Context } from 'grammy';
 import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
+import type { ShutUpContext } from "../types/squadTypes";
 import config from './config';
 import { getBotState } from './state';
 import { CodeEnum } from './enums';
 import { HOURS } from "./constants/general";
 import { ERRORS } from "./constants/errors";
 import { GENERAL } from "./constants/messages";
-import { ShutUpContext } from "../types/squadTypes";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",

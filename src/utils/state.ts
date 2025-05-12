@@ -1,6 +1,7 @@
+import type { MiddlewareFn, NextFunction } from "grammy";
+
+import type { ShutUpContext } from "../types/squadTypes";
 import { log } from "./common";
-import { ShutUpContext } from "../types/squadTypes";
-import { MiddlewareFn, NextFunction } from "grammy";
 
 let isBotActive = true;
 let isHoraSet = false;

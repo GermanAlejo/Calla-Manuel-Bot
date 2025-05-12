@@ -1,5 +1,6 @@
 import { Bot, session } from "grammy";
 import type { Api, RawApi } from "grammy";
+import { conversations, createConversation } from "@grammyjs/conversations";
 
 import config from './utils/config';
 import { allCommands, log, prepareMediaFiles } from './utils/common';
@@ -9,10 +10,9 @@ import { requestRateLimitMiddleware, groupUserStatusMiddleware, userFilterMiddle
 import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
 import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
-import { ShutUpContext } from "./types/squadTypes";
+import type { ShutUpContext } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
 import { persistenceMiddleware, sessionInitializerMiddleware, storage } from "./middlewares/fileAdapter";
-import { conversations, createConversation } from "@grammyjs/conversations";
 import { startNewDebt } from "./bot-replies/conversations";
 
 // Create a bot object
@@ -57,13 +57,7 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
         //await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.");
       }
     });
-    // Configurar sesión con serialización/deserialización para Dates
-    //bot.use(
-    //  session({
-    //    initial: undefined,
-    //    storage: storage,
-    //  })
-    //);
+    // Configurar sesión
     bot.use(session({ storage }));
     //order matters, load first initializer
     bot.use(sessionInitializerMiddleware);//middleware to initialize session
@@ -79,8 +73,8 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
     bot.use(adminCommands);
     bot.use(memberCommands);
     // Start the bot (using long polling)
+    await bot.api.setMyCommands(allCommands);
     await bot.start();
-    bot.api.setMyCommands(allCommands);
   } catch (err) {
     log.error("Error starting bot...");
     throw err;

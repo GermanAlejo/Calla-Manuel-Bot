@@ -1,6 +1,5 @@
 import type { Context, SessionFlavor } from "grammy";
-
-import { Conversation, ConversationFlavor } from "@grammyjs/conversations";
+import type { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 
 //tipo base de la session
 export type BotSession =
@@ -87,7 +86,7 @@ export function isPrivateUser(obj: any): obj is PrivateUser {
 
 // Type guard para MyChatMember
 export function isChatMember(obj: any): obj is MyChatMember {
-    const validStatuses = ["member", "left", "kicked", "administrator", "owner"];
+    const validStatuses: string[] = ["member", "left", "kicked", "administrator", "owner"];
     return (
         typeof obj === "object" &&
         typeof obj.id === "number" &&

@@ -2,12 +2,11 @@ import { Composer } from "grammy";
 import type { Context, NextFunction } from "grammy";
 
 import type { HashFiles } from "../utils/common";
-
+import type { ShutUpContext } from "../types/squadTypes";
 import { gifFiles, helpText, log, voiceFiles, scheduleMessage } from "../utils/common";
 import { getBotState, getHoraState, setBotState, setHoraState } from "../utils/state";
 import { AUDIO, GIFS } from "../utils/constants/files";
 import { ERRORS } from "../utils/constants/errors";
-import { ShutUpContext } from "../types/squadTypes";
 
 export const memberCommands = new Composer<ShutUpContext>();
 

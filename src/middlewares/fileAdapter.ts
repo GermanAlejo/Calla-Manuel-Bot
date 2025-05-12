@@ -1,9 +1,11 @@
 import { FileAdapter } from "@grammyjs/storage-file";
-import { BotSession, GroupSession, isChatMember, isPrivateUser, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
-import { Middleware, NextFunction } from "grammy";
+import type { Middleware, NextFunction } from "grammy";
+import type { Chat, User } from "grammy/types";
+
+import type { BotSession, GroupSession, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
+import { isChatMember, isPrivateUser } from "../types/squadTypes";
 import { log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
-import { Chat, User } from "grammy/types";
 
 
 export const storage = new FileAdapter<BotSession>({

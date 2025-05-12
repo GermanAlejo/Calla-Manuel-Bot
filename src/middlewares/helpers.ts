@@ -1,12 +1,14 @@
-import { GroupData, isGroupSession, isPrivateSession, MyChatMember, PrivateUser, ShutUpContext } from "../types/squadTypes";
-import { Bot, NextFunction } from "grammy";
+import type { Bot, NextFunction } from "grammy";
+import type { User } from "grammy/types";
+
+import { isGroupSession, isPrivateSession } from "../types/squadTypes";
+import type { GroupData, PrivateUser, MyChatMember, ShutUpContext } from "../types/squadTypes";
 import { noBroHere, buenosDias, buenasTardes, buenasNoches, paTiMiCola } from "../bot-replies/saluda";
 import { botHasAdminRights, broRegex, buenosDiasRegex, log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { GENERAL } from "../utils/constants/messages";
 import { CodeEnum } from "../utils/enums";
 import { getBotState } from "../utils/state";
-import { User } from "grammy/types";
 import { removeMemberFromPersistance, saveNewUserToPersistance, updateUserInPersistance } from "./fileAdapter";
 import { IGNORE_STATES } from "../utils/constants/general";
 
