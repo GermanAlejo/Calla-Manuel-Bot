@@ -106,9 +106,9 @@ function createPrivateSession(user: User): BotSession {
     } as PrivateSession;
 }
 
-function createGroupSession(chat: Chat): BotSession {
+function createGroupSession(chat: Chat.GroupChat | Chat.SupergroupChat): BotSession {
     return {
-        chatType: "group",
+        chatType: chat.type,
         createdAt: new Date(),
         isBotActive: true,
         groupData: {

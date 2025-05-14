@@ -1,6 +1,9 @@
+import type { NextFunction } from "grammy";
+import { Composer } from "grammy";
+
+import type { GroupData, ShutUpContext } from "../types/squadTypes";
 import { IGNORE_STATES } from "../utils/constants/general";
-import { GroupData, ShutUpContext, isGroupSession } from "../types/squadTypes";
-import { Composer, NextFunction } from "grammy";
+import { isGroupSession } from "../types/squadTypes";
 import { botHasAdminRights, log, MUTED_TIME } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { checkAdminMiddleware } from "../middlewares/middleware";
@@ -70,7 +73,7 @@ adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContex
     } catch (err) {
         log.error(ERRORS.NO_SELECTED_USER);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error("Error setting level of response");
+        throw err;
     }
 });
 

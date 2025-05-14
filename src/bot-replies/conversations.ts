@@ -1,6 +1,10 @@
-import { log } from "../utils/common";
-import { DebtSelectionState, isGroupSession, MyChatMember, ShutUpConversation, ShutUpConversationContext } from "../types/squadTypes";
 import { InlineKeyboard } from "grammy";
+import type { Message, User } from "grammy/types";
+
+import type { DebtSelectionState, MyChatMember, ShutUpConversation, ShutUpConversationContext } from "../types/squadTypes";
+import { log } from "../utils/common";
+import { isGroupSession } from "../types/squadTypes";
+
 
 const MEMBERS_PER_PAGE = 4;
 
@@ -22,7 +26,7 @@ export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUp
         log.error("Error reading owner");
         throw new Error("Error reading conversation");
     }
-    log.info("Owner of debt found: " + owner);
+    log.info("Owner of debt found: " + owner.username);
     await ctx.reply("Parece que hay gente que te debe dinero " + owner.username + ", ¿Como quieres llamar a esta deuda?");
     const replyCtx = await conversation.waitFrom(owner);
     await ctx.reply("Parece que hay gente aqui que debe dinero, se ha creado una nueva deuda con el nombre: " + replyCtx.message?.text);
@@ -38,9 +42,15 @@ export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUp
         allMembers: membersId
     }
 
+
+    await startMenuLoop(conversation, ctx, owner, state, members);
+}
+
+async function startMenuLoop(conversation: ShutUpConversation, ctx: ShutUpConversationContext, owner: User, state: DebtSelectionState, members: MyChatMember[]) {
+
     const totalPages = Math.ceil(state.allMembers.length / MEMBERS_PER_PAGE);
-    log.info("Debt initialize with state");
-    let message = await ctx.reply("Ahora dime quien de estos imbeciles es deudor", {
+    log.info("Debt initialized with state: " + JSON.stringify(state));
+    const message = await ctx.reply("Ahora dime quien de estos imbeciles es deudor", {
         reply_markup: await generateKeyboard(state, members, totalPages)
     });
 
@@ -62,54 +72,7 @@ export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUp
 
             const [action, data] = callbackQuery.data.split(":");
 
-            switch (action) {
-                case "select":
-                    const memberId = Number(data);
-                    const index = state.allMembers.indexOf(memberId);
-
-                    //existe
-                    if (index > -1) {
-                        log.info("Member found");
-                        //now search memeber in selected
-                        const selected = state.selectedMembers.indexOf(memberId);
-                        if(selected > -1) {
-                            log.info("Member deselected");
-                            state.selectedMembers.splice(index, 1); // Deseleccionar
-                        } else {
-                            log.info("Member selected");
-                            state.selectedMembers.push(memberId); // Seleccionar
-                        }
-                    } //no existe
-                    else {
-                        log.info("Member not found");
-                        throw new Error("Member id not found in object");
-                    }
-                    break;
-
-                case "page":
-                    if (data === "prev" && state.currentPage > 0) {
-                        state.currentPage--;
-                    } else if (data === "next" && state.currentPage < totalPages - 1) {
-                        state.currentPage++;
-                    }
-                    break;
-
-                case "action":
-                    if (data === "cancel") {
-                        log.info("Action canceled");
-                        await ctx.api.editMessageText(
-                            message.chat.id,
-                            message.message_id,
-                            "❌ Selección cancelada - No se creara deuda"
-                        );
-                        return;
-                    }
-                    if (data === "finish") {
-                        log.info("Selection finished");
-                        finished = true;
-                    }
-                    break;
-            }
+            finished = await selectState(ctx, state, action, data, totalPages, message);
 
             if (state.selectedMembers.length > 0) {
                 // Actualizar mensaje
@@ -124,7 +87,7 @@ export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUp
                     message.message_id,
                     { reply_markup: await generateKeyboard(state, members, totalPages) }
                 );
-                
+
                 await ctx.answerCallbackQuery();
             } else {
                 log.info("Action canceled");
@@ -147,7 +110,59 @@ export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUp
     log.info(state.selectedMembers);
 }
 
-async function generateKeyboard(state: DebtSelectionState, groupMembers: MyChatMember[], totalPages: number) {
+async function selectState(ctx: ShutUpConversationContext, state: DebtSelectionState, action: string, data: string, totalPages: number, message: Message.TextMessage): Promise<boolean> {
+    switch (action) {
+        case "select":
+            const memberId = Number(data);
+            const index = state.allMembers.indexOf(memberId);
+
+            //existe
+            if (index > -1) {
+                log.info("Member found");
+                //now search memeber in selected
+                const selected = state.selectedMembers.indexOf(memberId);
+                if (selected > -1) {
+                    log.info("Member deselected");
+                    state.selectedMembers.splice(index, 1); // Deseleccionar
+                } else {
+                    log.info("Member selected");
+                    state.selectedMembers.push(memberId); // Seleccionar
+                }
+            } //no existe
+            else {
+                log.info("Member not found");
+                throw new Error("Member id not found in object");
+            }
+            break;
+
+        case "page":
+            if (data === "prev" && state.currentPage > 0) {
+                state.currentPage--;
+            } else if (data === "next" && state.currentPage < totalPages - 1) {
+                state.currentPage++;
+            }
+            break;
+
+        case "action":
+            if (data === "cancel") {
+                log.info("Action canceled");
+                await ctx.api.editMessageText(
+                    message.chat.id,
+                    message.message_id,
+                    "❌ Selección cancelada - No se creara deuda"
+                );
+                return false;
+            }
+            if (data === "finish") {
+                log.info("Selection finished");
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+
+async function generateKeyboard(state: DebtSelectionState, groupMembers: MyChatMember[], totalPages: number): Promise<InlineKeyboard> {
     const keyboard = new InlineKeyboard();
     const start = state.currentPage * MEMBERS_PER_PAGE;
     const end = start + MEMBERS_PER_PAGE;
