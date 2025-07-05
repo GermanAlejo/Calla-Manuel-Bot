@@ -86,7 +86,7 @@ export function isPrivateUser(obj: any): obj is PrivateUser {
 
 // Type guard para MyChatMember
 export function isChatMember(obj: any): obj is MyChatMember {
-    const validStatuses: string[] = ["member", "left", "kicked", "administrator", "owner"];
+    const validStatuses: string[] = ["member", "left", "kicked", "administrator", "owner", "creator"];
     return (
         typeof obj === "object" &&
         typeof obj.id === "number" &&
