@@ -4,7 +4,7 @@ import type { Conversation, ConversationFlavor } from "@grammyjs/conversations";
 //tipo base de la session
 export type BotSession =
     | (PrivateSession & { chatType: "private" })
-    | (GroupSession & { chatType: "group" });
+    | (GroupSession & { chatType: "group" | "supergroup" });
 
 // Extender el contexto de Grammy con la sesión
 export type ShutUpContext = Context & SessionFlavor<BotSession> & ConversationFlavor<Context>;
@@ -44,13 +44,13 @@ export interface GroupData {
 }
 
 export interface BaseSession {
-    chatType: "private" | "group";
+    chatType: "private" | "group" | "supergroup";
     createdAt: Date;
     isBotActive: boolean;
 }
 
 export interface GroupSession extends BaseSession {
-    chatType: "group";
+    chatType: "group" | "supergroup";
     groupData: GroupData;
 }
 
@@ -67,7 +67,7 @@ export interface RateLimitOptions {
 
 //TypeGuards
 export function isGroupSession(session: BotSession | undefined): session is GroupSession {
-    return session?.chatType === "group";
+    return session?.chatType === "group" || session?.chatType === "supergroup";
 }
 
 export function isPrivateSession(session: BotSession | undefined): session is PrivateSession {

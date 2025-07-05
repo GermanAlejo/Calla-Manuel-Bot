@@ -97,7 +97,7 @@ async function startMenuLoop(conversation: ShutUpConversation, ctx: ShutUpConver
                     "❌ Selección cancelada - No se creara deuda"
                 );
             }
-
+            
         } catch (err) {
             log.error(err);
             log.warn("Timeout reached!");
@@ -144,20 +144,12 @@ async function selectState(ctx: ShutUpConversationContext, state: DebtSelectionS
             break;
 
         case "action":
-            if (data === "cancel") {
-                log.info("Action canceled");
-                await ctx.api.editMessageText(
-                    message.chat.id,
-                    message.message_id,
-                    "❌ Selección cancelada - No se creara deuda"
-                );
-                return false;
-            }
-            if (data === "finish") {
-                log.info("Selection finished");
+            if (data === "cancel" || data === "finish") {
+                log.info("Action " + data);
                 return true;
             }
             break;
+            //TODO: Add handle for default case here
     }
     return false;
 }
