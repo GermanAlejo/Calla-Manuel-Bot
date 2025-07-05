@@ -12,6 +12,7 @@ import { CodeEnum } from './enums';
 import { HOURS } from "./constants/general";
 import { ERRORS } from "./constants/errors";
 import { GENERAL } from "./constants/messages";
+import { BotCommand } from "grammy/types";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
@@ -42,7 +43,7 @@ export const buenosDiasRegex: RegExp[] = [
     /hola/i
 ];
 
-export const allCommands = [
+export const allCommands: BotCommand[] = [
     { command: "start", description: "Start the bot" },
     { command: "help", description: "Show help text" },
     { command: "stop", description: "Stop the bot" },
@@ -53,7 +54,7 @@ export const allCommands = [
     { command: "alechupa", description: "El Ale la chupa" },
     { command: "fernando", description: "DA LA CARA FERNANDO" },
     { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
-    { command: "fueraBros", description: "Elimina todos los mensajes con bros en el grupo" },
+    { command: "fuerabros", description: "Elimina todos los mensajes con bros en el grupo" },
     { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion"}
 
 ];

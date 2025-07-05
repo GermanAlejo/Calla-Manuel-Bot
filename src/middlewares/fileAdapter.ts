@@ -16,7 +16,7 @@ export const storage = new FileAdapter<BotSession>({
             return { __type: "Date", value: value.toISOString() };
         }
         return value;
-    }),
+    }, 2),//for pretty json formatting
     deserializer: (data) => JSON.parse(data, (_, value) => {
         // Reconstruir Dates desde el formato serializado
         if (value?.__type === "Date") {
@@ -129,7 +129,7 @@ export async function updateUserInPersistance(chatId: number, user: PrivateUser 
         const data = await storage.read(chatId.toString());
         if (data.chatType === "group" && isChatMember(user)) {
             const index = data.groupData.chatMembers.findIndex(u => u.id === user.id);
-            if(index === -1) {
+            if (index === -1) {
                 log.error("user not found in data");
                 throw new Error("User not found in persistance");
             }
