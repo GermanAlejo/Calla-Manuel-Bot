@@ -13,7 +13,7 @@ import { GENERAL } from "./utils/constants/messages";
 import type { ShutUpContext } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
 import { persistenceMiddleware, sessionInitializerMiddleware, storage } from "./middlewares/fileAdapter";
-import { startNewDebt } from "./bot-replies/conversations";
+import { newDebtConversation } from "./bot-replies/conversations";
 
 // Create a bot object
 const shutUpBot = new Bot<ShutUpContext>(config.botToken); // <-- place your bot token in this string
@@ -65,7 +65,7 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
     //inititalizes plugin
     bot.use(conversations());
     //register conversation handler
-    bot.use(createConversation(startNewDebt));
+    bot.use(createConversation(newDebtConversation));
     bot.use(rateLimitMiddleware);
     bot.use(botStatusMiddleware);
     bot.on('message', userFilterMiddleware);

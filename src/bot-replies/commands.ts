@@ -47,7 +47,7 @@ memberCommands.command('stop', async (ctx: ShutUpContext) => {
 });
 memberCommands.command('crearnuevadeuda', async (ctx: ShutUpContext) => {
     log.info("Iniciando nueva conversacion de deuda");
-    await ctx.conversation.enter("startNewDebt");
+    await ctx.conversation.enter("newDebtConversation");
 });
 memberCommands.command('horaespecial', async (ctx: ShutUpContext) => {
     log.info("Es la hora coño?");

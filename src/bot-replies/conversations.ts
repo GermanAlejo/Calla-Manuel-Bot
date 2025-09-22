@@ -1,12 +1,89 @@
-import { InlineKeyboard } from "grammy";
-import type { Message, User } from "grammy/types";
-
-import type { DebtSelectionState, MyChatMember, ShutUpConversation, ShutUpConversationContext } from "../types/squadTypes";
+import { ConversationMenu, ConversationMenuContext } from "@grammyjs/conversations";
+import { DebtSelectionState, isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation, type ShutUpConversationContext } from "../types/squadTypes";
 import { log } from "../utils/common";
-import { isGroupSession } from "../types/squadTypes";
+import { InlineKeyboard } from "grammy";
+import { User, Message } from "grammy/types";
+
 
 
 const MEMBERS_PER_PAGE = 4;
+
+export async function newDebtConversation(conversation: ShutUpConversation, ctx: ShutUpConversationContext) {
+    log.info("Starting new Debt");
+    const session = await conversation.external((ctx) => ctx.session);
+    if (!session || !isGroupSession(session)) {
+        log.info("Not in group - this functionality is not available");
+        return;
+    }
+    const chat = ctx.chat;
+    if (!chat) {
+        log.error("Error in chat");
+        throw new Error("Error reading chat from conversation");
+    }
+    const owner = ctx.from;
+    if (!owner) {
+        log.error("Error reading owner");
+        throw new Error("Error reading conversation");
+    }
+    log.info("Owner of debt found: " + owner.username);
+
+    //Obtenemos la lista de todos los miembros del grupo
+    const members: MyChatMember[] = session.groupData.chatMembers;
+    //const membersId = members.map(m => m.id);
+
+    //array to keep track of selected members
+    //Build menu
+    const debtMenu = await buildDebtMenu(conversation, members.map(m => m.username));
+    await ctx.reply("Debt Menu", {
+        reply_markup: debtMenu
+    });
+
+    // Wait until menu handler set `picked`
+    /*await conversation.waitUntil(() => !!picked, {
+      next: true,
+      otherwise: () => ctx.reply("Please use the menu above.")
+    });*/
+
+}
+
+async function buildDebtMenu(conversation: ShutUpConversation, members: string[]): Promise<ConversationMenu<ShutUpContext>> {
+    const selected: string[] = [];
+    //First create menu
+    const debtMenu = conversation.menu();
+    //for each member we print an option
+    members.forEach((member) => {
+        debtMenu.text(() => (selected.includes(member) ? `✅ ${member}` : member),
+            async (mctx: ConversationMenuContext<ShutUpContext>) => {
+                //member is not saved, we add it or viceversa
+                await toggle(member, selected);
+                await mctx.menu.update();
+            })
+            .row();
+    });
+
+    //add done and cancel buttons
+    debtMenu
+        .text("✅ Done", async (mctx: ConversationMenuContext<ShutUpContext>) => {
+            await mctx.reply(`You selected: ${selected.join(", ") || "nothing"}`);
+            //Here the operation should be saved
+            await mctx.menu.close();
+        })
+        .text("❌ Cancel", async (mctx: ConversationMenuContext<ShutUpContext>) => {
+            await mctx.reply(`You canceled`);
+            await mctx.menu.close();
+        });
+
+    return debtMenu;
+}
+
+async function toggle(value: string, selected: string[]) {
+    const idx = selected.indexOf(value);
+    if (idx === -1) selected.push(value);
+    else selected.splice(idx, 1);
+}
+
+
+/*********************/
 
 //This defines the conversation
 export async function startNewDebt(conversation: ShutUpConversation, ctx: ShutUpConversationContext) {
@@ -97,7 +174,7 @@ async function startMenuLoop(conversation: ShutUpConversation, ctx: ShutUpConver
                     "❌ Selección cancelada - No se creara deuda"
                 );
             }
-            
+
         } catch (err) {
             log.error(err);
             log.warn("Timeout reached!");
@@ -149,7 +226,7 @@ async function selectState(ctx: ShutUpConversationContext, state: DebtSelectionS
                 return true;
             }
             break;
-            //TODO: Add handle for default case here
+        //TODO: Add handle for default case here
     }
     return false;
 }
@@ -183,3 +260,5 @@ async function generateKeyboard(state: DebtSelectionState, groupMembers: MyChatM
 
     return keyboard;
 }
+
+
