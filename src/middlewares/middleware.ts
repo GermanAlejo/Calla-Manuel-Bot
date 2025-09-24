@@ -95,7 +95,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
                     status: status,
                     username: caller.username || "unknown",
                     greetingCount: 0,
-                    joinedAt: new Date(),
+                    joinedAt: "",
                     isAdmin: true
                 }
                 //save creator user
@@ -110,7 +110,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
                     status: status,
                     username: caller.username || "unknown",
                     greetingCount: 0,
-                    joinedAt: new Date(),
+                    joinedAt: "",
                     isAdmin: false
                 }
                 //save user

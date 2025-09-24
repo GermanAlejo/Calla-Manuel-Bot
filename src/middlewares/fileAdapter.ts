@@ -80,9 +80,9 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
 
             //save session
             ctx.session = newSession;
+            await storage.write(chatId, ctx.session);
         }
         await next();
-        await storage.write(chatId, ctx.session);
     } catch (err) {
         log.error(err);
         log.error("Error reading session");
@@ -96,12 +96,12 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
 function createPrivateSession(user: User): BotSession {
     return {
         chatType: "private",
-        createdAt: new Date(),
+        createdAt: "",
         isBotActive: true,
         userData: {
             id: user.id,
             username: user.username,
-            firstInteraction: new Date()
+            firstInteraction: "" //leave empty dates for the moment
         }
     } as PrivateSession;
 }
@@ -109,7 +109,7 @@ function createPrivateSession(user: User): BotSession {
 function createGroupSession(chat: Chat.GroupChat | Chat.SupergroupChat): BotSession {
     return {
         chatType: chat.type,
-        createdAt: new Date(),
+        createdAt: "",
         isBotActive: true,
         groupData: {
             blockedUser: undefined,

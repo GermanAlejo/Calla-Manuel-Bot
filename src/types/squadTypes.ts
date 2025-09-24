@@ -10,21 +10,21 @@ export type BotSession =
 export type ShutUpContext = Context & SessionFlavor<BotSession> & ConversationFlavor<Context>;
 
 //Tipo para conversaciones
-export type ShutUpConversationContext = ShutUpContext;
-export type ShutUpConversation = Conversation<ShutUpContext, ShutUpConversationContext>;
+//export type ShutUpConversationContext = ShutUpContext;
+export type ShutUpConversation = Conversation<ShutUpContext, ShutUpContext>;
 
 export interface PrivateUser {
     id: number;
     username?: string;
-    firstInteraction: Date;
+    firstInteraction?: string;
 }
 
 export interface MyChatMember {
     id: number;
     username: string;
-    status: "member" | "left" | "kicked" | "administrator" | "creator"; //this field possible values match grammys
+    status: "member" | "left" | "kicked" | "administrator" | "creator" | "owner"; //this field possible values match grammys
     greetingCount: number;
-    joinedAt?: Date;
+    joinedAt?: string;
     isAdmin: boolean;
 }
 
@@ -45,7 +45,7 @@ export interface GroupData {
 
 export interface BaseSession {
     chatType: "private" | "group" | "supergroup";
-    createdAt: Date;
+    createdAt?: string;
     isBotActive: boolean;
 }
 
@@ -80,7 +80,7 @@ export function isPrivateUser(obj: any): obj is PrivateUser {
         typeof obj === "object" &&
         typeof obj.id === "number" &&
         (typeof obj.username === "string" || obj.username === undefined) &&
-        obj.firstInteraction instanceof Date
+        typeof obj.firstInteraction === "string"
     );
 }
 
@@ -93,7 +93,7 @@ export function isChatMember(obj: any): obj is MyChatMember {
         typeof obj.username === "string" &&
         validStatuses.includes(obj.status) &&
         typeof obj.greetingCount === "number" &&
-        (obj.joinedAt === undefined || obj.joinedAt instanceof Date) &&
+        (obj.joinedAt === undefined || typeof obj.joinedAt === "string") &&
         typeof obj.isAdmin === "boolean"
     );
 }

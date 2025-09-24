@@ -90,7 +90,7 @@ export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "le
                 status: newStatus,
                 username: user.username || "unknown",
                 greetingCount: 0,
-                joinedAt: new Date(),
+                joinedAt: "",
                 isAdmin: false
             }
             ctx.session.groupData.chatMembers.push(newUser);
@@ -100,7 +100,7 @@ export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "le
             log.info("Saving new alone user");
             const newUser: PrivateUser = {
                 id: user.id,
-                firstInteraction: new Date(),
+                firstInteraction: "",
                 username: user.username
             }
             ctx.session.userData = newUser;
