@@ -1,5 +1,5 @@
 import { isBuenosDiasTime, log } from "../utils/common";
-import type { GroupData, ShutUpContext } from "../types/squadTypes";
+import type { Debt, GroupData, ShutUpContext } from "../types/squadTypes";
 import { ERRORS } from "../utils/constants/errors";
 import { CodeEnum } from "../utils/enums";
 import { INSULTOS, SALUDOS } from "../utils/constants/messages";
@@ -160,4 +160,33 @@ function updateSaludos(username: string, groupData: GroupData) {
         throw new Error("Could not find user in salutations");
     }
     user.greetingCount++;
+}
+
+export async function debtReminder(ctx: ShutUpContext, debt: Debt) {
+    try {
+        log.info("Setting reminder for new debt");
+        const chatId = ctx.chatId;
+        if(!chatId) {
+            log.error("Chat not found in context");
+            throw new Error("Could not schedule message");
+        }
+        //TODO: Check this debt does not exists for this group
+        const message: string = 
+        `La cuenta!:\n` + 
+        debt.debtors.forEach(m => m)
+        + "Bizums rapiditos!";
+
+        log.info("Sending first message");
+        ctx.api.sendMessage(chatId, message);
+
+        log.info("Setting delay of 24h");
+        setInterval(async () => {
+            log.info("Setting interval for next day");
+            await ctx.api.sendMessage(chatId, message);
+        }, 24 * 60 * 60 * 1000); // Cada 24 horas
+    } catch (err) {
+        log.error(ERRORS.ERROR_REPLY_BRO);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        return err;
+    }
 }

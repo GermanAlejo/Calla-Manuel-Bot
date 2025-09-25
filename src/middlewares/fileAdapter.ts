@@ -2,14 +2,14 @@ import { FileAdapter } from "@grammyjs/storage-file";
 import type { Middleware, NextFunction } from "grammy";
 import type { Chat, User } from "grammy/types";
 
-import type { BotSession, GroupSession, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
-import { isChatMember, isPrivateUser } from "../types/squadTypes";
+import type { BotSession, Debt, GroupSession, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
+import { isChatMember, isDebt, isPrivateUser } from "../types/squadTypes";
 import { log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 
 
 export const storage = new FileAdapter<BotSession>({
-    dirName: "./data/sessions.json",
+    dirName: "./data/sessions",
     serializer: (data) => JSON.stringify(data, (_, value) => {
         // Convertir Dates a un formato serializable
         if (value instanceof Date) {
@@ -26,48 +26,22 @@ export const storage = new FileAdapter<BotSession>({
     })
 });
 
-//This is a middlware fuction to handle persistance
-export const persistenceMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
-    log.info("In persistence middleware");
-
-    const chatId = ctx.chat?.id;
-
-    if (!chatId) {
-        log.error("Invalid id");
-        return next()
-    };
-
-    // Guardar automáticamente si es nueva sesión
-    if (!ctx.session) {
-        log.info("New session saved");
-        await storage.write(chatId.toString(), ctx.session);
-    }
-
-    await next();
-
-    // Actualizar persistencia después de modificaciones
-    log.info("Updating session...");
-    await storage.write(chatId.toString(), ctx.session);
-};
-
 //This function is in charge of initializing the session
 export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     try {
         log.info("Search for session");
         const chat = await ctx.getChat();
-        const chatId = chat.id.toString();
 
         if (!chat) {
             log.error("Error getting chat");
             return next();
         }
+
+        const chatId = chat.id.toString();
         // Verificar si ya existe en persistencia
         const existingSession = await storage.read(chatId);
-        if (existingSession) {
-            log.info("Session exists, returning it");
-            ctx.session = existingSession;
-        } else {
-            log.info("Session does not exists, creating new one");
+        if (!existingSession) {
+            log.info(`Session does not exists, creating new one for chat ${chatId}`);
             // Crear nueva sesión según tipo de chat
             const chatType = chat.type;
             if (chatType != "private" && chatType != "group" && chatType != "supergroup") {
@@ -82,6 +56,8 @@ export const sessionInitializerMiddleware: Middleware<ShutUpContext> = async (ct
             ctx.session = newSession;
             await storage.write(chatId, ctx.session);
         }
+        log.info("Session exists, returning it");
+        ctx.session = existingSession;
         await next();
     } catch (err) {
         log.error(err);
@@ -118,7 +94,8 @@ function createGroupSession(chat: Chat.GroupChat | Chat.SupergroupChat): BotSess
             userBlockLevel: "Bajo",
             commandOnlyAdmins: true,
             specialHour: undefined,
-            chatMembers: []
+            chatMembers: [],
+            currentDebts: []
         }
     } as GroupSession;
 }
@@ -150,8 +127,14 @@ export async function saveNewUserToPersistance(chatId: number, user: PrivateUser
     try {
         log.info("Saving new user to persistance");
         const data = await storage.read(chatId.toString());
-        if (data.chatType === "group" && isChatMember(user)) {
+        if (!data) {
+            log.error("Session does not exist");
+            throw new Error("Session does not exist");
+        }
+        if ((data.chatType === "group" || data.chatType === "supergroup")&& isChatMember(user)) {
             log.info("Saving new Member to group");
+            //if array is unasigned then initialize it empty
+            //data.groupData.chatMembers ||= [];
             data.groupData.chatMembers.push(user);
         } else if (data.chatType === "private" && isPrivateUser(user)) {
             log.info("Saving new private chat");
@@ -185,5 +168,26 @@ export async function removeMemberFromPersistance(chatId: number, userId: number
         log.error("Error saving to persistance");
         log.trace(ERRORS.TRACE(__filename, __dirname));
         throw error;
+    }
+}
+
+export async function addDebtToPersistance(chatId: number | undefined, debt: Debt) {
+    try {
+        log.info("Saving new debt to persistance");
+        if (!chatId) {
+            log.error("Error: Not chat detected");
+            return new Error("Error: Not chat detected");
+        }
+        const data = await storage.read(chatId.toString());
+        if (data.chatType === "group" && isDebt(debt)) {
+            log.info("Saving new Debt to group");
+            data.groupData.currentDebts.push(debt);
+        }
+        await storage.write(chatId.toString(), data);
+    } catch (err) {
+        log.error(err);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
     }
 }

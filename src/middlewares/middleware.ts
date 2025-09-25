@@ -83,47 +83,38 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         }
         //set the status
         const status = (await ctx.getChatMember(caller?.id)).status;
+        //check if user exists
+        let user = groupData.chatMembers.find(u => u.id === caller.id);
+        //if the user is not saved we save it, in other case we skip
+        if (!user) {
+            let isAdmin = false;
+            //check if creator
+            if (status === "creator") {
+                isAdmin = true;
+            }
+            let userName = caller.username;
+            if(!userName) {
+                userName = caller.first_name
+            }
+            const newUser: MyChatMember = {
+                    id: caller.id,
+                    status: status,
+                    username: userName || "unknown",
+                    greetingCount: 0,
+                    joinedAt: "",
+                    isAdmin: isAdmin
+                }
+            //save creator user
+            await saveNewUserToPersistance(chatId, newUser);
+        }
 
-        //Search the user in the group
-        if (status === "creator") {
-            //check if user exists
-            const user = groupData.chatMembers.find(u => u.id === caller.id);
-            //if the user is not saved we save it, in other case we skip
-            if (!user) {
-                const newUser: MyChatMember = {
-                    id: caller.id,
-                    status: status,
-                    username: caller.username || "unknown",
-                    greetingCount: 0,
-                    joinedAt: "",
-                    isAdmin: true
-                }
-                //save creator user
-                await saveNewUserToPersistance(chatId, newUser);
-            }
-        } else if (status === "member") {
-            //check if user exists
-            const user = groupData.chatMembers.find(u => u.id === caller.id);
-            if (!user) {
-                const newUser: MyChatMember = {
-                    id: caller.id,
-                    status: status,
-                    username: caller.username || "unknown",
-                    greetingCount: 0,
-                    joinedAt: "",
-                    isAdmin: false
-                }
-                //save user
-                await saveNewUserToPersistance(chatId, newUser);
-            }
-            //now we check if the user is the one to be ignored
-            if (!userIgnored) {
-                log.info("The blocked user is disabled/no user set");
-                return next();
-            }
-            if (userIgnored === user?.username) {
-                return await filterIgnoredUser(ctx, next, userIgnored, level);
-            }
+        //now we check if the user is the one to be ignored
+        if (!userIgnored) {
+            log.info("The blocked user is disabled/no user set");
+            return next();
+        }
+        if (userIgnored === user?.username) {
+            return await filterIgnoredUser(ctx, next, userIgnored, level);
         }
         return next();
     } catch (err) {

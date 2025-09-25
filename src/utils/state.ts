@@ -24,6 +24,10 @@ export function getHoraState(): boolean {
 
 export const botStatusMiddleware: MiddlewareFn<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("Iyecting global state to context");
+    if (!ctx.session) {
+        log.warn("botStatusMiddleware: session is undefined");
+        return next();
+    }
     ctx.session.isBotActive = isBotActive;
     return next();
 }

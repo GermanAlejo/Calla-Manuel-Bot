@@ -1,4 +1,4 @@
-import { Bot, session } from "grammy";
+import { Bot } from "grammy";
 import type { Api, RawApi } from "grammy";
 import { conversations, createConversation } from "@grammyjs/conversations";
 
@@ -12,7 +12,7 @@ import { ERRORS } from "./utils/constants/errors";
 import { GENERAL } from "./utils/constants/messages";
 import type { ShutUpContext } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
-import { persistenceMiddleware, sessionInitializerMiddleware, storage } from "./middlewares/fileAdapter";
+import { sessionInitializerMiddleware } from "./middlewares/fileAdapter";
 import { newDebtConversation } from "./bot-replies/conversations";
 
 // Create a bot object
@@ -58,10 +58,9 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
       }
     });
     // Configurar sesión
-    bot.use(session({ storage }));
+    //bot.use(session({ storage }));
     //order matters, load first initializer
     bot.use(sessionInitializerMiddleware);//middleware to initialize session
-    bot.use(persistenceMiddleware);
     //inititalizes plugin
     bot.use(conversations());
     //register conversation handler

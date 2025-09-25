@@ -22,7 +22,7 @@ export interface PrivateUser {
 export interface MyChatMember {
     id: number;
     username: string;
-    status: "member" | "left" | "kicked" | "administrator" | "creator" | "owner"; //this field possible values match grammys
+    status:  "creator" | "administrator" | "member" | "restricted" | "left" | "kicked"; //this field possible values match grammys
     greetingCount: number;
     joinedAt?: string;
     isAdmin: boolean;
@@ -30,7 +30,7 @@ export interface MyChatMember {
 
 export interface Debt {
     name: string;
-    debtors: MyChatMember[];
+    debtors: string[];
 }
 
 export interface GroupData {
@@ -41,6 +41,7 @@ export interface GroupData {
     commandOnlyAdmins: boolean; // Si solo los administradores pueden usar comandos
     specialHour: string | undefined; // Hora especial en formato "HH:mm", o null si no está configurada
     chatMembers: MyChatMember[];
+    currentDebts: Debt[];
 }
 
 export interface BaseSession {
@@ -98,8 +99,12 @@ export function isChatMember(obj: any): obj is MyChatMember {
     );
 }
 
-export interface DebtSelectionState {
-    selectedMembers: number[]; //ids
-    currentPage: number;
-    allMembers: number[] //all members
+//Type guard for debt
+export function isDebt(obj: any): obj is Debt {
+    return (
+        typeof obj === "object" &&
+        typeof obj.name === "string" &&
+        Array.isArray(obj.debtors) && obj.debtors.every((t: unknown) => typeof t === "string")
+    );
 }
+

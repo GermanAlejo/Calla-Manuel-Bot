@@ -204,7 +204,10 @@ export function scheduleMessage(ctx: ShutUpContext, message: string) {
     const now = new Date();
     const targetTime = new Date();
     log.info("Setting hora coño...");
-
+    if(getBotState()) {
+        log.warn("Hora cono already set, skipping for this chat");
+        return;
+    }  
     targetTime.setHours(horaconoHora, horaconoMin, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
