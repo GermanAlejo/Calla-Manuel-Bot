@@ -110,38 +110,38 @@ export async function buenosDias(ctx: ShutUpContext) {
 
 export async function noBroHere(ctx: ShutUpContext) {
     try {
-        if (!ctx.session) {
+        const session = ctx.session;
+        if (!session) {
             log.error("Session no inicializada");
             throw new Error("Error in buenos dias");
         }
+        if (!isGroupSession(session)) {
+            log.info("Private chat");
+            log.info("Just replying to the message");
+            return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL");
+        }
+
         const username: string | undefined = ctx.from?.username || ctx.from?.first_name;
         if (!username) {
             log.warn("user not found");
             throw new Error("Error getting context user in bro salutations");
         }
-        if (ctx.session.chatType === "group") {
-            log.info("Group Chat");
-            const groupData: GroupData = ctx.session.groupData;
-            if (!groupData.isBroDeleted) {
-                log.warn("This function is deactivated");
-                return;
-            }
-            const level = groupData.broReplyLevel;
-            if (level === BRO_STATES.reply) {
-                log.info("Just replying to the message");
-                return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + username);
-            } else if (level === BRO_STATES.delete) {
-                //delete mesage
-                log.info("Deleting Bro message");
-                await ctx.reply("Palabra prohibida, @" + username + " esto es un chat español no la digas mas");
-                return await ctx.deleteMessage();
-            }
-        } else {
-            log.info("Private chat");
+
+        const groupData = session.groupData;
+        const level = groupData.broReplyLevel;
+        if (level === BRO_STATES.reply) {
             log.info("Just replying to the message");
             return await ctx.reply("VAS Y LE DICES BRO A TU PADRE IMBECIL, @" + username);
+        } else if (level === BRO_STATES.delete) {
+            //delete mesage
+            log.info("Deleting Bro message");
+            await ctx.reply("Palabra prohibida, @" + username + " esto es un chat español no la digas mas");
+            return await ctx.deleteMessage();
+        } else if (level === BRO_STATES.off) {
+            //dont do anything
+            log.info("Function deactivated");
+            return
         }
-
     } catch (err) {
         log.error(ERRORS.ERROR_REPLY_BRO);
         log.trace(ERRORS.TRACE(__filename, __dirname));

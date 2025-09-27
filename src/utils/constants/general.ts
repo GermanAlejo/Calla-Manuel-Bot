@@ -7,7 +7,8 @@ export const IGNORE_STATES = {
 
 export const BRO_STATES = {
   reply: "responder",
-  delete: "borrar"
+  delete: "borrar",
+  off: "off"
 }
 
 export const HOURS = {
@@ -24,11 +25,3 @@ export const HORACONO_HOUR: number = 16; // Hora coño storadge
 export const BUENOSDIAS_MIN: number = 0;
 export const BUENOSDIAS_HOUR: number = 10;
 
-  // Type for all valid hour numbers (0–23)
- //type Hour = 0 | 1 | 2 | ... | 23; // As above
- //
- //// Get the type of HOURS values
- //type HourName = keyof typeof HOURS; // "Midnight" | "Noon" | "Max"
-  
-  // Usage
-  //const currentHour: Hour = HOURS.Noon; // 12 (type: 12)

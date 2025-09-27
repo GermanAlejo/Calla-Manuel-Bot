@@ -52,8 +52,9 @@ export const allCommands: BotCommand[] = [
     { command: "fernando", description: "DA LA CARA FERNANDO" },
     { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
     { command: "fuerabros", description: "Elimina todos los mensajes con bros en el grupo" },
-    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion"}
-
+    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion"},
+    { command: "buenosdias", description: "Permite saber quien da los buenos días aqui."},
+    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida"}
 ];
 
 export const helpText = `
@@ -73,6 +74,7 @@ Aquí tienes una lista de comandos disponibles:
 - */fernando*: DA LA CARA FERNANDO.
 - */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
 - */buenosdias*: Permite saber quien da los buenos días aqui.
+- */setfuerabros*: Permite controlar la reaccion del bot a la palabra *"bro"*.
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 

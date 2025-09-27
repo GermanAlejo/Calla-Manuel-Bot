@@ -2,7 +2,7 @@ import { FileAdapter } from "@grammyjs/storage-file";
 import type { Middleware, NextFunction } from "grammy";
 import type { Chat, User } from "grammy/types";
 
-import type { BotSession, Debt, GroupSession, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
+import type { BotSession, Debt, GroupData, GroupSession, MyChatMember, PrivateSession, PrivateUser, ShutUpContext } from "../types/squadTypes";
 import { isChatMember, isDebt, isPrivateUser } from "../types/squadTypes";
 import { log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
@@ -132,7 +132,7 @@ export async function saveNewUserToPersistance(chatId: number, user: PrivateUser
             log.error("Session does not exist");
             throw new Error("Session does not exist");
         }
-        if ((data.chatType === "group" || data.chatType === "supergroup")&& isChatMember(user)) {
+        if ((data.chatType === "group" || data.chatType === "supergroup") && isChatMember(user)) {
             log.info("Saving new Member to group");
             //if array is unasigned then initialize it empty
             //data.groupData.chatMembers ||= [];
@@ -153,7 +153,7 @@ export async function saveNewUserToPersistance(chatId: number, user: PrivateUser
 export async function removeMemberFromPersistance(chatId: number, userId: number) {
     try {
         const data = await storage.read(chatId.toString());
-        if (data.chatType !== "group") {
+        if (data.chatType !== "group" && data.chatType !== "supergroup") {
             log.error("Error - removing from private chat");
             throw new Error("Removing from private chat");
         }
@@ -162,6 +162,27 @@ export async function removeMemberFromPersistance(chatId: number, userId: number
             data.groupData.chatMembers =
                 data.groupData.chatMembers.filter(m => m.id !== userId);
 
+            await storage.write(chatId.toString(), data);
+        }
+    } catch (error) {
+        log.error(error);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw error;
+    }
+}
+
+export async function saveGroupDataToPersistance(chatId: number, groupData: GroupData) {
+    try {
+        const data = await storage.read(chatId.toString());
+        if (data.chatType !== "group" && data.chatType !== "supergroup") {
+            log.error("Error - removing from private chat");
+            throw new Error("Removing from private chat");
+        }
+        if(data.groupData) {
+            log.info("Updating group data to persistance");
+            data.groupData = groupData;
+            //modify file
             await storage.write(chatId.toString(), data);
         }
     } catch (error) {

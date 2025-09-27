@@ -36,8 +36,7 @@ export interface Debt {
 export interface GroupData {
     id: number;
     blockedUser: string | undefined; // username
-    isBroDeleted: boolean; //indica si se debe responder/ignorar al usuario
-    broReplyLevel: "responder" | "borrar";
+    broReplyLevel: "responder" | "borrar" | "off";
     userBlockLevel: "Bajo" | "Medio" | "Alto"; // Indica si algún usuario está bloqueado
     commandOnlyAdmins: boolean; // Si solo los administradores pueden usar comandos
     specialHour: string | undefined; // Hora especial en formato "HH:mm", o null si no está configurada

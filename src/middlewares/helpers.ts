@@ -14,12 +14,11 @@ import { IGNORE_STATES } from "../utils/constants/general";
 
 export function runBotResponses(bot: Bot<ShutUpContext>) {
     try {
-        if (getBotState()) {
-            bot.hears(broRegex, async (ctx: ShutUpContext) => noBroHere(ctx));
-        } else {
+        if (!getBotState()) {
             log.error(GENERAL.BOT_DESACTIVADO);
+            return;
         }
-        return;
+        return bot.hears(broRegex, async (ctx: ShutUpContext) => noBroHere(ctx));;
     } catch (err) {
         log.error(ERRORS.ERROR_READING_USER);
         log.trace(ERRORS.TRACE(__filename, __dirname));

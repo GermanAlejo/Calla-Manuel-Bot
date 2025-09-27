@@ -7,23 +7,21 @@ import { isGroupSession } from "../types/squadTypes";
 import { botHasAdminRights, log, MUTED_TIME } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
 import { checkAdminMiddleware } from "../middlewares/middleware";
+import { getBotState } from "../utils/state";
 
 export const adminCommands = new Composer<ShutUpContext>();
 
-adminCommands.command('fuerabros', checkAdminMiddleware, async (ctx: ShutUpContext) => {
+adminCommands.command('setfuerabros', checkAdminMiddleware, async (ctx: ShutUpContext, next: NextFunction) => {
     if(!isGroupSession(ctx.session)) {
         log.warn("Not a group");
-        return;
+        return next();
     }
-    log.info("Setting bro reply status");
-    const groupData: GroupData = ctx.session.groupData;
-    if (groupData.isBroDeleted) {
-        groupData.isBroDeleted = false;
-        await ctx.reply("Pues nada venga hablad como oligofrenicos...");
-    } else {
-        groupData.isBroDeleted = true;
-        await ctx.reply("Se acabo eso de hablar como subnormales, de nada!");
+    if(!getBotState()) {
+        log.info("Bot is deactivated");
+        return next();
     }
+    log.info("Setting bro reply status - initiating new conversation");
+    await ctx.conversation.enter("setBroLevelConversation");
 });
 
 //Lets use this function to set the bros response as well
@@ -36,11 +34,6 @@ adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContex
             return next();
         }
         const groupData: GroupData = ctx.session.groupData;
-        //si es falso no debemos responder
-        if (!groupData.isBroDeleted) {
-            log.info("Function is deactivated");
-            return next();
-        }
         const level = ctx.match;
         if (!level) {
             log.error("Error getting level");
@@ -78,6 +71,7 @@ adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContex
 });
 
 
+//TODO: Revisit this function
 async function printLevel(ctx: ShutUpContext, value: string) {
     try {
         switch (value) {

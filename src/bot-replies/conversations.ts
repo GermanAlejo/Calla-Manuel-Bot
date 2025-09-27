@@ -3,7 +3,7 @@ import { ERRORS } from "../utils/constants/errors";
 import { Debt, isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation } from "../types/squadTypes";
 import { log } from "../utils/common";
 import { InlineKeyboard } from "grammy";
-import { addDebtToPersistance } from "../middlewares/fileAdapter";
+import { addDebtToPersistance, saveGroupDataToPersistance } from "../middlewares/fileAdapter";
 import { debtReminder } from "./saluda";
 
 /**
@@ -50,7 +50,7 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
         // ---- 2. State
         const selected: number[] = []; // store by id
         await ctx.reply("Parece que hay gente aqui que te debe dinero:", {
-            reply_markup: buildKeyboard(members, selected)
+            reply_markup: buildDebtKeyboard(members, selected)
         });
 
         // ---- 3. Interactive loop
@@ -160,7 +160,100 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
 
             await update.answerCallbackQuery();
             await update.editMessageReplyMarkup({
-                reply_markup: buildKeyboard(members, selected)
+                reply_markup: buildDebtKeyboard(members, selected)
+            });
+        }
+    } catch (err) {
+        log.error(ERRORS.ERROR_IN_BUENOS_DIAS);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        return err;
+    }
+}
+
+export async function setBroLevelConversation(conversation: ShutUpConversation, ctx: ShutUpContext) {
+    try {
+        log.info("Entering conversational Menu");
+        // validate session
+        const session = await conversation.external(ctx => ctx.session);
+        if (!isGroupSession(session)) {
+            log.info("Not in group - this functionality is not available");
+            await ctx.reply("❌ Este comando solo funciona en chats grupales.");
+            return;
+        }
+
+        const callerId = ctx.from?.id;
+        if (!callerId) {
+            log.error("Unexpected error - no caller");
+            throw new Error("No caller detected");
+        }
+
+        //get the group data to modify the level
+        const groupData = session.groupData;
+
+        // Open the menu
+        await ctx.reply('¿Como quieres que tratemos a los imbeciles que digan "bro"', {
+            reply_markup: buildSetLevelBroKeyboard()
+        });
+
+        // start the loop
+        while (true) {
+            const update = await conversation.waitForCallbackQuery(/.*/);
+            // Guard: only caller can use it
+            if (update.from?.id !== callerId) {
+                log.info("Unothorized use of menu");
+                await update.answerCallbackQuery({
+                    text: "❌ Este menú no es para ti",
+                    show_alert: true
+                });
+                continue;
+            }
+
+            const action = update.callbackQuery.data;
+            if (!action) {
+                continue;
+            };
+
+            if (action === "level1") {
+                //here we don't do anything just change level parameter
+                log.info("Level 1 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText('Pues nada venga hablad como oligofrenicos...');
+                //modify the data & persistance
+                groupData.broReplyLevel = "off";
+                saveGroupDataToPersistance(groupData.id, groupData);
+                break;
+            }
+
+            if (action === "level2") {
+                log.info("Level 2 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText('Se contestara a los imbeciles que usen "bro"');
+                //modify persistante
+                groupData.broReplyLevel = "responder"; 
+                saveGroupDataToPersistance(groupData.id, groupData);
+                break;
+            }
+
+            if (action == "level3") {
+                log.info("Level 3 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText('A partir de ahora estaran prohibidos los "bro"');
+                //modify persistante
+                groupData.broReplyLevel = "borrar"; 
+                saveGroupDataToPersistance(groupData.id, groupData);
+                break;
+            }
+
+            if (action === "cancel") {
+                log.info("Canceling debt");
+                await update.answerCallbackQuery();
+                await update.editMessageText("❌ Operación cancelada.");
+                break;
+            }
+
+            await update.answerCallbackQuery();
+            await update.editMessageReplyMarkup({
+                reply_markup: buildSetLevelBroKeyboard()
             });
         }
     } catch (err) {
@@ -202,7 +295,7 @@ function toggleSelection(action: string, selected: number[]) {
  *
  * @returns An {@link InlineKeyboard} instance representing the constructed keyboard.
  */
-function buildKeyboard(members: MyChatMember[], selected: number[]) {
+function buildDebtKeyboard(members: MyChatMember[], selected: number[]) {
     log.info("Building keyboard");
     const kb = new InlineKeyboard();
     members.forEach(m => {
@@ -212,5 +305,18 @@ function buildKeyboard(members: MyChatMember[], selected: number[]) {
     kb
         .text("✅ Done", "done")
         .text("❌ Cancel", "cancel");
+    return kb;
+}
+
+function buildSetLevelBroKeyboard() {
+    log.info("Building keyboard");
+    const kb = new InlineKeyboard();
+    kb.text('Nivel 1: Se permite a los oligofrenicos decir "bro"', "level1");
+    kb.row()
+    kb.text('Nivel 2: Se contestara adecuadamente a los que digan "bro"', "level2")
+    kb.row()
+    kb.text('Nivel 3: ESTA PROHIBIDO EL USO DE LA PALABRA "BRO"', "level3")
+    kb.row()
+    kb.text("❌ Cancel", "cancel");
     return kb;
 }
