@@ -7,14 +7,18 @@ import { gifFiles, helpText, log, voiceFiles, scheduleMessage } from "../utils/c
 import { getBotState, getHoraState, setBotState, setHoraState } from "../utils/state";
 import { AUDIO, GIFS } from "../utils/constants/files";
 import { ERRORS } from "../utils/constants/errors";
+import { salutationsCheck } from "./saluda";
+import { HORACONO_HOUR, HORACONO_MIN } from "../utils/constants/general";
 
 export const memberCommands = new Composer<ShutUpContext>();
 
 // Reacts to /start commands
 memberCommands.command('start', async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("Start Command...");
-    if(!getHoraState()) {
-        scheduleMessage(ctx, "Feliz hora coño");
+    if (!getHoraState()) {
+        log.info("Setting hora coño...");
+        //once the bot starts schedule the hora coño
+        scheduleMessage(ctx, "Feliz hora coño", HORACONO_HOUR, HORACONO_MIN);
         setHoraState(!getHoraState());
     }
     if (getBotState()) {
@@ -102,6 +106,11 @@ memberCommands.command('alechupa', async (ctx: ShutUpContext) => {
     }
     await ctx.replyWithAnimation(gif.value);
 });
+
+memberCommands.command('buenosdias', async (ctx: ShutUpContext) => {
+    log.info("Calling buenos dias command ...");
+    await salutationsCheck(ctx);
+})
 
 async function callaManuel(ctx: Context) {
     if (!ctx) {

@@ -4,8 +4,25 @@ import { Debt, isGroupSession, type MyChatMember, type ShutUpContext, type ShutU
 import { log } from "../utils/common";
 import { InlineKeyboard } from "grammy";
 import { addDebtToPersistance } from "../middlewares/fileAdapter";
+import { debtReminder } from "./saluda";
 
-//TODO: Add comments to this code
+/**
+ * Handles the interactive flow for creating a new group debt in a Telegram chat.
+ * 
+ *  * This function uses grammY's conversational API to guide the caller through:
+ * 1. Validating the session and ensuring the command is used in a group.
+ * 2. Displaying a dynamic inline keyboard of group members to select who owes money.
+ * 3. Letting the caller confirm their selection with Done or cancel with Cancel.
+ * 4. Asking the caller to provide a name for the new debt.
+ * 5. Persisting the debt in the session (if valid and not duplicated).
+ * 6. Sending a confirmation message to the group.
+ * 
+ * @param conversation - The active conversation instance
+ * @param ctx - The context of the command invocation.
+ *
+ * @returns A promise that resolves once the conversation ends. In case of error,
+ *          the error object is returned.
+ */
 export async function newDebtConversation(conversation: ShutUpConversation, ctx: ShutUpContext) {
     try {
         log.info("Entering conversational menu");
@@ -15,6 +32,12 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
             log.info("Not in group - this functionality is not available");
             await ctx.reply("❌ Este comando solo funciona en chats grupales.");
             return;
+        }
+
+        const callerId = ctx.from?.id;
+        if (!callerId) {
+            log.error("Unexpected error - no caller");
+            throw new Error("No caller detected");
         }
 
         const members = session.groupData.chatMembers;
@@ -34,10 +57,11 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
         while (true) {
             const update = await conversation.waitForCallbackQuery(/.*/);
             // Guard: only caller can use it
-            if (update.from?.id !== ctx.from?.id) {
+            if (update.from?.id !== callerId) {
+                log.info("Unothorized use of menu");
                 await update.answerCallbackQuery({
                     text: "❌ Este menú no es para ti",
-                    show_alert: true,
+                    show_alert: true
                 });
                 continue;
             }
@@ -49,22 +73,38 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
 
             if (action === "done") {
                 await update.answerCallbackQuery();
-                //TODO: split this into simpler code
-                //TODO: Add price calculation
-                //TODO: Add step to name conversation
                 await update.editMessageText(`Miembros seleccionados: ${selected.map(id =>
-                    members.find(m => m.id === id)?.username ?? id).join(", ") || "nadie"}`);
+                    //Search for members inside selected by if, if found return with username if not found return id, then join after map with commas
+                    members.find(m => m.id === id)?.username ?? id).join(", ") || "nadie"}`
+                );
 
                 //Preguntamos por un nombre para la deuda
                 await ctx.reply("Dale un nombre a la deuda:");
-                const nameMsg = await conversation.waitFor(":text");
-                //TODO: What if name emptty
-                const debtName = nameMsg.message?.text;
-                if (!debtName) {
-                    log.error("No debt name!!");
-                    //TODO: Extract this Error to interface/entity
-                    throw new Error("No debt name provided");
+                //guard only caller can name
+                let debtName: string | undefined;
+                const TIMEOUT_MS = 5 * 60 * 1000;//5min 
+                while (!debtName) {
+                    try {
+                        const nameMsg = await conversation.waitFor(":text", { maxMilliseconds: TIMEOUT_MS });
+                        if (nameMsg.from?.id !== callerId) {
+                            log.info("This message is not from caller");
+                            continue;
+                        }
+
+                        const text = nameMsg.message?.text.trim();
+                        if (!text) {
+                            log.error("No name provided");
+                            await ctx.reply("⚠️ El nombre no puede estar vacío. Inténtalo otra vez:");
+                            continue;
+                        }
+                        debtName = text;
+                    } catch (err) {
+                        log.error("Timeout giving a name");
+                        await ctx.reply("⌛ Tiempo agotado. La operación ha sido cancelada.");
+                        return;
+                    }
                 }
+
                 //If no one is selected then don't save
                 if (selected.length === 0) {
                     log.info("No members selected");
@@ -73,26 +113,35 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
                 }
 
                 // ---- 4. Persist into session
-                const resDebt = await conversation.external(ctx => {
-                    if (!isGroupSession(ctx.session)) {
-                        log.error("Not in a group");
-                        return [];
-                    }
+                const resDebt: string[] | undefined = await conversation.external(ctx => {
                     // Filter selected members
-                    const selectedMembers = ctx.session.groupData.chatMembers.filter(m => selected.includes(m.id));
+                    const selectedMembers = session.groupData.chatMembers.filter(m => selected.includes(m.id));
                     // now map usernames
                     const debtors = selectedMembers.map(m => m.username);
-                    log.info("Saving debt data to persistance");
                     //Create debt
                     const newDebt: Debt = {
                         name: debtName,
                         debtors: debtors
                     };
+                    // Check debt is not duplicated, if so abort
+                    if (session.groupData.currentDebts.find(d => d.name === newDebt.name)) {
+                        log.warn("Duplicated debt found - Aborting");
+                        ctx.reply("IMBECIL YA HAY UNA DEUDA CON ESE NOMBRE");
+                        return;
+                    }
                     //Save it to persistance
                     addDebtToPersistance(ctx.chatId, newDebt);
-                    return debtors;
+                    //create reminder
+                    debtReminder(ctx, newDebt);
 
+                    return debtors;
                 });
+
+                if (!resDebt) {
+                    log.info("If undefined the debt was duplicated - Abort");
+                    return;
+                }
+
                 await ctx.reply(`✅ Deuda "${debtName}" creada, chavales:\n` +
                     `${resDebt.join("\n")}` +
                     `\nBIZUMS RAPIDITOS!!!`);
@@ -106,15 +155,8 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
                 break;
             }
 
-            //TODO: This can be extracted to a function
             // ---- Toggle selection
-            const memberId = parseInt(action);
-            const idx = selected.indexOf(memberId);
-            if (idx === -1) {
-                selected.push(memberId);
-            } else {
-                selected.splice(idx, 1);
-            }
+            toggleSelection(action, selected);
 
             await update.answerCallbackQuery();
             await update.editMessageReplyMarkup({
@@ -128,6 +170,38 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
     }
 }
 
+/**
+ * Toggles the selection state of a member ID inside the given array.
+ *
+ * @param action - A string representing the member ID (usually from a button callback).
+ * @param selected - Array of currently selected member IDs. Will be modified in place.
+ */
+function toggleSelection(action: string, selected: number[]) {
+    const memberId = parseInt(action);
+    const idx = selected.indexOf(memberId);
+    if (idx === -1) {
+        selected.push(memberId);
+    } else {
+        selected.splice(idx, 1);
+    }
+}
+
+/**
+ * Builds a inline keyboard for selecting members.
+ *
+ * Each member is displayed as a button. If the member is already in the
+ * `selected` array, their username is prefixed with a ✅ checkmark.
+ *
+ * The keyboard also includes two control buttons at the bottom:
+ * - **✅ Done** → to confirm selection
+ * - **❌ Cancel** → to cancel the process
+ *
+ * @param members - The list of chat members to display as selectable buttons.
+ *                  Each member should have an `id` (number) and `username` (string).
+ * @param selected - Array of member IDs that are currently marked as selected.
+ *
+ * @returns An {@link InlineKeyboard} instance representing the constructed keyboard.
+ */
 function buildKeyboard(members: MyChatMember[], selected: number[]) {
     log.info("Building keyboard");
     const kb = new InlineKeyboard();

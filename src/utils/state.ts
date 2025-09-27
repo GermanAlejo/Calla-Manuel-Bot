@@ -5,6 +5,7 @@ import { log } from "./common";
 
 let isBotActive = true;
 let isHoraSet = false;
+let isBuenosDiasCheck = false;
 
 export function setBotState(newState: boolean) {
     isBotActive = newState;
@@ -20,6 +21,14 @@ export function setHoraState(newState: boolean) {
 
 export function getHoraState(): boolean {
     return isHoraSet;
+}
+
+export function setBuenosDiasCheckState(newState: boolean) {
+    isBuenosDiasCheck = newState;
+}
+
+export function getBuenosDiasCheckState(): boolean {
+    return isBuenosDiasCheck;
 }
 
 export const botStatusMiddleware: MiddlewareFn<ShutUpContext> = async (ctx: ShutUpContext, next: NextFunction) => {

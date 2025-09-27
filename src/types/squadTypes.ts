@@ -34,6 +34,7 @@ export interface Debt {
 }
 
 export interface GroupData {
+    id: number;
     blockedUser: string | undefined; // username
     isBroDeleted: boolean; //indica si se debe responder/ignorar al usuario
     broReplyLevel: "responder" | "borrar";

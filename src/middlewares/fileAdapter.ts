@@ -88,6 +88,7 @@ function createGroupSession(chat: Chat.GroupChat | Chat.SupergroupChat): BotSess
         createdAt: "",
         isBotActive: true,
         groupData: {
+            id: chat.id,
             blockedUser: undefined,
             isBroDeleted: false,
             broReplyLevel: "responder",

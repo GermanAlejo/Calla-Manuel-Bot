@@ -19,9 +19,6 @@ export const log: Logger<ILogObj> = new Logger({
     prettyLogTimeZone: "local"
 });
 
-const horaconoMin: number = 58; // Hora coño storadge
-const horaconoHora: number = 16; // Hora coño storadge
-
 //Move this to a config/env file
 export const CREATOR_NAME: string = config.creatorName;// read admin username
 export const CROCANTI_NAME: string = config.firstAdmin;// read admin username
@@ -68,13 +65,14 @@ Aquí tienes una lista de comandos disponibles:
 - */start*: Inicia el bot. (admin)
 - */stop*: Detiene el bot.
 - */help*: Muestra este mensaje de ayuda.
-- */imbeciles*: Llama imbecil a todo el mundo
-- */putamadre*: Se caga en la puta madre
-- */horaespecial*: Por si se te ha olvidado cuando es la hora coño
-- */callamanuel*: Mandare callar al manuel
-- */alechupa*: Quieres ver al Ale chupar? 😉
-- */fernando*: DA LA CARA FERNANDO
-- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin)
+- */imbeciles*: Llama imbecil a todo el mundo.
+- */putamadre*: Se caga en la puta madre..
+- */horaespecial*: Por si se te ha olvidado cuando es la hora coño.
+- */callamanuel*: Mandare callar al manuel.
+- */alechupa*: Quieres ver al Ale chupar? 😉.
+- */fernando*: DA LA CARA FERNANDO.
+- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
+- */buenosdias*: Permite saber quien da los buenos días aqui.
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 
@@ -199,16 +197,15 @@ function getMediaDir() {
     return mediaPath;
 }
 
-export function scheduleMessage(ctx: ShutUpContext, message: string) {
+export function scheduleMessage(ctx: ShutUpContext, message: string, hora: number, min: number) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
-    log.info("Setting hora coño...");
     if(getBotState()) {
-        log.warn("Hora cono already set, skipping for this chat");
+        log.warn("Message already scheduled - skipping for this chat");
         return;
     }  
-    targetTime.setHours(horaconoHora, horaconoMin, 0, 0);
+    targetTime.setHours(hora, min, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
     if (targetTime.getTime() <= now.getTime()) {
