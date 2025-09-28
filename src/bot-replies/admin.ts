@@ -1,22 +1,20 @@
 import type { NextFunction } from "grammy";
 import { Composer } from "grammy";
 
-import type { GroupData, ShutUpContext } from "../types/squadTypes";
-import { IGNORE_STATES } from "../utils/constants/general";
+import type { ShutUpContext } from "../types/squadTypes";
 import { isGroupSession } from "../types/squadTypes";
-import { botHasAdminRights, log, MUTED_TIME } from "../utils/common";
-import { ERRORS } from "../utils/constants/errors";
+import { botHasAdminRights, log } from "../utils/common";
 import { checkAdminMiddleware } from "../middlewares/middleware";
 import { getBotState } from "../utils/state";
 
 export const adminCommands = new Composer<ShutUpContext>();
 
 adminCommands.command('setfuerabros', checkAdminMiddleware, async (ctx: ShutUpContext, next: NextFunction) => {
-    if(!isGroupSession(ctx.session)) {
+    if (!isGroupSession(ctx.session)) {
         log.warn("Not a group");
         return next();
     }
-    if(!getBotState()) {
+    if (!getBotState()) {
         log.info("Bot is deactivated");
         return next();
     }
@@ -24,75 +22,34 @@ adminCommands.command('setfuerabros', checkAdminMiddleware, async (ctx: ShutUpCo
     await ctx.conversation.enter("setBroLevelConversation");
 });
 
-//Lets use this function to set the bros response as well
-//TODO: change this to a conversation
 adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContext, next: NextFunction) => {
     log.info("setting the level of response...");
     try {
-        if (!isGroupSession(ctx.session)) {
-            log.warn("Not a group");
+        // validate session
+        const session = ctx.session;
+        if (!isGroupSession(session)) {
+            log.warn("Not in group - this functionality is not available");
+            await ctx.reply("❌ Este comando solo funciona en chats grupales.");
             return next();
         }
-        const groupData: GroupData = ctx.session.groupData;
-        const level = ctx.match;
-        if (!level) {
-            log.error("Error getting level");
+
+        if (!getBotState()) {
+            log.info("Bot is deactivated");
             return next();
         }
-        if (typeof level === 'string') {
-            if (level === IGNORE_STATES.low || level === IGNORE_STATES.medium || level === IGNORE_STATES.high) {
-                log.info("value selected: " + level);
-                if (await botHasAdminRights(ctx)) {
-                    log.info("setting timer to unmute manuel");
-                    //temporizador
-                    setTimeout(() => {
-                        if (groupData.userBlockLevel === IGNORE_STATES.high) {
-                            log.info("User is muted, unmmuting after " + MUTED_TIME);
-                            groupData.userBlockLevel = IGNORE_STATES.low;
-                        }
-                    }, MUTED_TIME);
-                    await printLevel(ctx, level);
-                } else {
-                    log.info("Skipping due to admin rights");
-                    log.warn("BOT HAS NO ADMIN RIGHTS");
-                    groupData.userBlockLevel = IGNORE_STATES.low;
-                    return await ctx.api.sendMessage((await ctx.getChat()).id, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
-                }
-            } else {
-                log.warn("Value setted not valid!");
-                await ctx.reply("Imbecil sno has introducido un valor valido");
-            }
+        //if no rights then cancel
+        if (!botHasAdminRights(ctx)) {
+            log.info("Skipping due to admin rights");
+            log.warn("BOT HAS NO ADMIN RIGHTS");
+            return await ctx.api.sendMessage(session.groupData.id, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
         }
-    } catch (err) {
-        log.error(ERRORS.NO_SELECTED_USER);
-        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw err;
-    }
-});
 
-
-//TODO: Revisit this function
-async function printLevel(ctx: ShutUpContext, value: string) {
-    try {
-        switch (value) {
-            case IGNORE_STATES.low:
-                log.info("Low lever not affectig user, doing nothing");
-                return ctx.reply("Ahora no se mandara callar al Manue, ¿Estas seguro? Tu sabras...");
-            case IGNORE_STATES.medium:
-                log.info("Mid level ignore, replying to user...");
-                return ctx.reply("El Manuel sera mandado a callar, sabia decision");
-            case IGNORE_STATES.high:
-                //this requires checking
-                log.info("Highest level, deleting user...");
-                return ctx.reply("El Manuel no podra hablar, por fin");
-            default:
-                log.error("Value not valid");
-                log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-                break;
-        }
+        log.info("Setting ignore Manuel status - initiaing new conversation");
+        await ctx.conversation.enter("setIgnoreManuelLevel");
     } catch (err) {
         log.error(err);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error("Error setting level");
+        throw new Error("Error in set level command for ignored user");
     }
-}
+});
+

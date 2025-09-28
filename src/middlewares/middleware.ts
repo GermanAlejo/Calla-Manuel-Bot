@@ -1,6 +1,7 @@
 import type { Context, Middleware, MiddlewareFn, NextFunction } from "grammy";
 import type { User } from "grammy/types";
 
+import config from '../utils/config';
 import { ERRORS } from "../utils/constants/errors";
 import type { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import { isGroupSession } from "../types/squadTypes";
@@ -47,8 +48,7 @@ export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         log.error(err);
         log.error(ERRORS.ERROR_READING_USER);
         log.trace(ERRORS.TRACE(__filename, __dirname));
-        //this is so the bot does not break
-        return next();
+        throw new Error("Unexpected error in admin middleware");
     }
 }
 
@@ -74,7 +74,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         }
         const caller = ctx.from;
         const groupData = ctx.session.groupData;
-        const userIgnored: string | undefined = groupData.blockedUser;
+        const userIgnored: string | undefined = groupData.blockedUser || config.manuelUser;
         const level: string = groupData.userBlockLevel;
 
         if (!caller) {
@@ -87,16 +87,14 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         let user = groupData.chatMembers.find(u => u.id === caller.id);
         //if the user is not saved we save it, in other case we skip
         if (!user) {
+            let userName = caller.username || caller.first_name;
             let isAdmin = false;
             //check if creator
-            if (status === "creator") {
+            if (status === "creator" || userName === config.firstAdmin || userName === config.secondAdmin) {
                 isAdmin = true;
             }
-            let userName = caller.username;
-            if(!userName) {
-                userName = caller.first_name
-            }
-            const newUser: MyChatMember = {
+
+            user = {
                     id: caller.id,
                     status: status,
                     username: userName || "unknown",
@@ -105,7 +103,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
                     isAdmin: isAdmin
                 }
             //save creator user
-            await saveNewUserToPersistance(chatId, newUser);
+            await saveNewUserToPersistance(chatId, user);
         }
 
         //now we check if the user is the one to be ignored
@@ -113,8 +111,8 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
             log.info("The blocked user is disabled/no user set");
             return next();
         }
-        if (userIgnored === user?.username) {
-            return await filterIgnoredUser(ctx, next, userIgnored, level);
+        if (userIgnored === user.username) {
+            return await filterIgnoredUser(ctx, userIgnored, level);
         }
         return next();
     } catch (err) {

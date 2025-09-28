@@ -1,4 +1,4 @@
-import type { Bot, NextFunction } from "grammy";
+import type { Bot } from "grammy";
 import type { User } from "grammy/types";
 
 import { isGroupSession, isPrivateSession } from "../types/squadTypes";
@@ -41,30 +41,37 @@ export function runBotSalutations(bot: Bot<ShutUpContext>) {
     }
 }
 
-export async function filterIgnoredUser(ctx: ShutUpContext, next: NextFunction, userIgnored: string, level: string) {
-    log.info("User to be ignored found");
-    switch (level) {
-        case IGNORE_STATES.low:
-            log.info("Low lever not affectig user, doing nothing");
-            return next();
-        case IGNORE_STATES.medium:
-            log.info("Mid level ignore, replying to user...");
-            log.info("Blocking user: " + userIgnored);
-            await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
-            return;
-        case IGNORE_STATES.high:
-            if (await botHasAdminRights(ctx)) {
+export async function filterIgnoredUser(ctx: ShutUpContext, userIgnored: string, level: string) {
+    try {
+        log.info("User to be ignored found");
+        switch (level) {
+            case IGNORE_STATES.low:
+                log.info("Low lever not affectig user, doing nothing");
+                break;
+            case IGNORE_STATES.medium:
+                log.info("Mid level ignore, replying to user...");
+                log.info("Blocking user: " + userIgnored);
+                await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                break;
+            case IGNORE_STATES.high:
                 //this requires checking
                 log.info("Highest level, deleting user...");
+                if (await botHasAdminRights(ctx)) {
+                    await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
+                    await ctx.deleteMessage();
+                    break;
+                }
+                log.warn("Bot does not have admin rights");
                 await ctx.reply("CALLATE MANUEL @" + userIgnored); //Hay que probar esto otra vez
-                await ctx.deleteMessage();
-                return;
-            }
-            log.warn("Bot does not have admin rights");
-            return next();
-        default:
-            log.warn("Error filtering ignored user...");
-            return next();
+                break;
+            default:
+                log.warn("Error filtering ignored user...");
+                break;
+        }
+    } catch (err) {
+        log.error("Error filtering ignored user");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
     }
 }
 

@@ -6,7 +6,7 @@ import type { BotSession, Debt, GroupData, GroupSession, MyChatMember, PrivateSe
 import { isChatMember, isDebt, isPrivateUser } from "../types/squadTypes";
 import { log } from "../utils/common";
 import { ERRORS } from "../utils/constants/errors";
-
+import config from "../utils/config";
 
 export const storage = new FileAdapter<BotSession>({
     dirName: "./data/sessions",
@@ -89,7 +89,7 @@ function createGroupSession(chat: Chat.GroupChat | Chat.SupergroupChat): BotSess
         isBotActive: true,
         groupData: {
             id: chat.id,
-            blockedUser: undefined,
+            blockedUser: config.manuelUser,
             isBroDeleted: false,
             broReplyLevel: "responder",
             userBlockLevel: "Bajo",

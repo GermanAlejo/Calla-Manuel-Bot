@@ -6,7 +6,6 @@ import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
 import type { ShutUpContext } from "../types/squadTypes";
-import config from './config';
 import { getBotState } from './state';
 import { CodeEnum } from './enums';
 import { HOURS } from "./constants/general";
@@ -18,12 +17,6 @@ export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
     prettyLogTimeZone: "local"
 });
-
-//Move this to a config/env file
-export const CREATOR_NAME: string = config.creatorName;// read admin username
-export const CROCANTI_NAME: string = config.firstAdmin;// read admin username
-export const MIGUE_NAME: string = config.secondAdmin;// read admin username
-export const MANUEL_NAME: string = config.manuelUser;// read selected username
 
 export const MUTED_TIME: number = 30000; //Muted for 30 seconds
 export const voiceFiles: HashFiles[] = []; //List to store voice files
@@ -52,9 +45,9 @@ export const allCommands: BotCommand[] = [
     { command: "fernando", description: "DA LA CARA FERNANDO" },
     { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
     { command: "fuerabros", description: "Elimina todos los mensajes con bros en el grupo" },
-    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion"},
-    { command: "buenosdias", description: "Permite saber quien da los buenos días aqui."},
-    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida"}
+    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion" },
+    { command: "buenosdias", description: "Permite saber quien da los buenos días aqui." },
+    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" }
 ];
 
 export const helpText = `
@@ -133,10 +126,9 @@ export async function botHasAdminRights(ctx: Context): Promise<boolean> {
             if (isAdmin) {
                 log.info(GENERAL.BOT_IS_ADMIN);
                 return true;
-            } else {
-                log.warn(GENERAL.BOT_IS_NOT_ADMIN);
-                return false;
             }
+            log.warn(GENERAL.BOT_IS_NOT_ADMIN);
+            return false;
         }
         return false;
     } catch (err) {
@@ -203,10 +195,10 @@ export function scheduleMessage(ctx: ShutUpContext, message: string, hora: numbe
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
-    if(getBotState()) {
+    if (getBotState()) {
         log.warn("Message already scheduled - skipping for this chat");
         return;
-    }  
+    }
     targetTime.setHours(hora, min, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
@@ -220,7 +212,7 @@ export function scheduleMessage(ctx: ShutUpContext, message: string, hora: numbe
     // Usa setTimeout para programar el primer mensaje
     setTimeout(async () => {
         const chatId = ctx.chat?.id;
-        if(!chatId) {
+        if (!chatId) {
             log.error("Chat not found in context");
             throw new Error("Could not schedule message");
         }

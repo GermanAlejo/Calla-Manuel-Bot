@@ -1,10 +1,11 @@
 
 import { ERRORS } from "../utils/constants/errors";
 import { Debt, isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation } from "../types/squadTypes";
-import { log } from "../utils/common";
+import { log, MUTED_TIME } from "../utils/common";
 import { InlineKeyboard } from "grammy";
 import { addDebtToPersistance, saveGroupDataToPersistance } from "../middlewares/fileAdapter";
 import { debtReminder } from "./saluda";
+import { IGNORE_STATES } from "../utils/constants/general";
 
 /**
  * Handles the interactive flow for creating a new group debt in a Telegram chat.
@@ -142,8 +143,8 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
                     return;
                 }
 
-                await ctx.reply(`✅ Deuda "${debtName}" creada, chavales:\n` +
-                    `${resDebt.join("\n")}` +
+                await ctx.reply(`💰 Deuda "${debtName}" creada, chavales:\n` +
+                    `@${resDebt.join("\n")}` +
                     `\nBIZUMS RAPIDITOS!!!`);
                 break;
             }
@@ -164,12 +165,127 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
             });
         }
     } catch (err) {
-        log.error(ERRORS.ERROR_IN_BUENOS_DIAS);
+        log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
         return err;
     }
 }
 
+export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx: ShutUpContext) {
+    try {
+        log.info("Entering conversational Menu");
+        // validate session
+        const session = await conversation.external(ctx => ctx.session);
+        if (!isGroupSession(session)) {
+            log.info("Not in group - this functionality is not available");
+            await ctx.reply("❌ Este comando solo funciona en chats grupales.");
+            return;
+        }
+
+        const callerId = ctx.from?.id;
+        if (!callerId) {
+            log.error("Unexpected error - no caller");
+            throw new Error("No caller detected");
+        }
+
+        //get the group data to modify the level
+        const groupData = session.groupData;
+
+        // Open the menu
+        await ctx.reply('Quieres mandar a callar a Manuel? Buena idea', {
+            reply_markup: buildSetIgnoreManuelKeyboard()
+        });
+
+        //start loop of conversation with menu
+        while (true) {
+            //wait for update
+            const update = await conversation.waitForCallbackQuery(/.*/);
+            //Make sure only caller can use menu
+            if (update.from.id !== callerId) {
+                log.info("Unothorized use of menu");
+                await update.answerCallbackQuery({
+                    text: "❌ Este menú no es para ti",
+                    show_alert: true
+                });
+                continue;
+            }
+
+            //get the action
+            const action = await update.callbackQuery.data;
+            if (action === "level1") {
+                //here we don't do anything just change level parameter
+                log.info("Level 1 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText("Manuel ya no sera callado, gran error...");
+                //update persistance
+                groupData.userBlockLevel = IGNORE_STATES.low;
+                saveGroupDataToPersistance(groupData.id, groupData);
+                break;
+            }
+
+            if (action === "level2") {
+                log.info("Level 2 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText("El Manuel sera mandado a callar, sabia decision");
+                //update data
+                groupData.userBlockLevel = IGNORE_STATES.medium;
+                saveGroupDataToPersistance(groupData.id, groupData);
+                break;
+            }
+
+            if (action == "level3") {
+                log.info("Level 3 selected");
+                await update.answerCallbackQuery();
+                await update.editMessageText("El Manuel no podra hablar, por fin");
+                //update data
+                groupData.userBlockLevel = IGNORE_STATES.high;
+                saveGroupDataToPersistance(groupData.id, groupData);
+                log.info("setting timer to unmute manuel");
+                //temporizador
+                setTimeout(() => {
+                    if (groupData.userBlockLevel === IGNORE_STATES.high) {
+                        log.info("User is muted, unmmuting after " + MUTED_TIME);
+                        groupData.userBlockLevel = IGNORE_STATES.low;
+                        saveGroupDataToPersistance(groupData.id, groupData);
+                    }
+                }, MUTED_TIME);
+                break;
+            }
+
+            if (action === "cancel") {
+                log.info("Canceling...");
+                await update.answerCallbackQuery();
+                await update.editMessageText("❌ Operación cancelada.");
+                break;
+            }
+
+            await update.answerCallbackQuery();
+            await update.editMessageReplyMarkup({
+                reply_markup: buildSetIgnoreManuelKeyboard()
+            });
+        }
+    } catch (err) {
+        log.error(err);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw new Error("Error in set level conversation")
+    }
+}
+
+/**
+ * Handles interactive flow for setting the value of leve for the bro reply
+ * 
+ *  *  * This function uses grammY's conversational API to guide the caller through:
+ * 1. Validating the session and ensuring the command is used in a group.
+ * 2. Displaying a dynamic inline keyboard with three options to set
+ * 3. Letting the caller confirm their selection with Done or cancel with Cancel.
+ * 4. Sending a confirmation message to the group.
+ * 
+ * @param conversation - The active conversation instance
+ * @param ctx - The context of the command invocation.
+ *
+ * @returns A promise that resolves once the conversation ends. In case of error,
+ *          the error object is returned.
+ */
 export async function setBroLevelConversation(conversation: ShutUpConversation, ctx: ShutUpContext) {
     try {
         log.info("Entering conversational Menu");
@@ -229,7 +345,7 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
                 await update.answerCallbackQuery();
                 await update.editMessageText('Se contestara a los imbeciles que usen "bro"');
                 //modify persistante
-                groupData.broReplyLevel = "responder"; 
+                groupData.broReplyLevel = "responder";
                 saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
@@ -239,13 +355,13 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
                 await update.answerCallbackQuery();
                 await update.editMessageText('A partir de ahora estaran prohibidos los "bro"');
                 //modify persistante
-                groupData.broReplyLevel = "borrar"; 
+                groupData.broReplyLevel = "borrar";
                 saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
             if (action === "cancel") {
-                log.info("Canceling debt");
+                log.info("Canceling...");
                 await update.answerCallbackQuery();
                 await update.editMessageText("❌ Operación cancelada.");
                 break;
@@ -257,9 +373,9 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
             });
         }
     } catch (err) {
-        log.error(ERRORS.ERROR_IN_BUENOS_DIAS);
+        log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
-        return err;
+        throw new Error("Error in set bro level conversation");
     }
 }
 
@@ -311,12 +427,25 @@ function buildDebtKeyboard(members: MyChatMember[], selected: number[]) {
 function buildSetLevelBroKeyboard() {
     log.info("Building keyboard");
     const kb = new InlineKeyboard();
-    kb.text('Nivel 1: Se permite a los oligofrenicos decir "bro"', "level1");
-    kb.row()
-    kb.text('Nivel 2: Se contestara adecuadamente a los que digan "bro"', "level2")
-    kb.row()
-    kb.text('Nivel 3: ESTA PROHIBIDO EL USO DE LA PALABRA "BRO"', "level3")
-    kb.row()
-    kb.text("❌ Cancel", "cancel");
+    kb.text('Nivel 1: Se permite a los oligofrenicos decir "bro"', "level1")
+        .row()
+        .text('Nivel 2: Se contestara adecuadamente a los que digan "bro"', "level2")
+        .row()
+        .text('Nivel 3: ESTA PROHIBIDO EL USO DE LA PALABRA "BRO"', "level3")
+        .row()
+        .text("❌ Cancel", "cancel");
+    return kb;
+}
+
+function buildSetIgnoreManuelKeyboard() {
+    log.info("Building keyboard");
+    const kb = new InlineKeyboard();
+    kb.text('Nivel 1: Manuel tiene libertad absoluta, gran error...', 'level1')
+        .row()
+        .text('Nivel 2: Mandare mandar callar a Manuel en cada mensaje', 'level2')
+        .row()
+        .text('Nivel 3: El Manuel no podra hablar, por fin', 'level3')
+        .row()
+        .text("❌ Cancel", "cancel");
     return kb;
 }
