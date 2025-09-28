@@ -43,11 +43,12 @@ export const allCommands: BotCommand[] = [
     { command: "callamanuel", description: "Manda callar al Manuel" },
     { command: "alechupa", description: "El Ale la chupa" },
     { command: "fernando", description: "DA LA CARA FERNANDO" },
-    { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" },
+    { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel" },
     { command: "fuerabros", description: "Elimina todos los mensajes con bros en el grupo" },
     { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion" },
     { command: "buenosdias", description: "Permite saber quien da los buenos días aqui." },
-    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" }
+    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" },
+    { command: "updatedebt", description: "Permite actualizar las listas de morosos"}
 ];
 
 export const helpText = `
@@ -65,9 +66,10 @@ Aquí tienes una lista de comandos disponibles:
 - */callamanuel*: Mandare callar al manuel.
 - */alechupa*: Quieres ver al Ale chupar? 😉.
 - */fernando*: DA LA CARA FERNANDO.
-- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
+- */setlevel*: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
 - */buenosdias*: Permite saber quien da los buenos días aqui.
-- */setfuerabros*: Permite controlar la reaccion del bot a la palabra *"bro"*.
+- */setfuerabros*: Permite controlar la reaccion del bot a la palabra *"bro" (admin)*.
+- */updatedebt*: Permite actualizar las listas de morosos
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 

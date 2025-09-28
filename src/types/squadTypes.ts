@@ -29,6 +29,7 @@ export interface MyChatMember {
 }
 
 export interface Debt {
+    ownerId: number;
     name: string;
     debtors: string[];
 }

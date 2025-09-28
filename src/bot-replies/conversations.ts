@@ -121,6 +121,7 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
                     const debtors = selectedMembers.map(m => m.username);
                     //Create debt
                     const newDebt: Debt = {
+                        ownerId: callerId,
                         name: debtName,
                         debtors: debtors
                     };
@@ -164,6 +165,96 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
                 reply_markup: buildDebtKeyboard(members, selected)
             });
         }
+    } catch (err) {
+        log.error(err);
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        return err;
+    }
+}
+
+export async function changeDebtorState(conversation: ShutUpConversation, ctx: ShutUpContext) {
+    try {
+        log.info("Entering conversational Menu");
+        const session = await conversation.external(ctx => ctx.session);
+        if (!isGroupSession(session)) {
+            log.info("Not in group - this functionality is not available");
+            await ctx.reply("❌ Este comando solo funciona en chats grupales.");
+            return;
+        }
+
+        const callerId = ctx.from?.id;
+        if (!callerId) {
+            log.error("Unexpected error - no caller");
+            throw new Error("No caller detected");
+        }
+
+        //now we search the debt
+        const debts = session.groupData.currentDebts.filter(d => d.ownerId === callerId);
+        //now debt found
+        if (!debts || debts.length === 0) {
+            log.info("No debt for this owner");
+            return ctx.reply("Nadie te debe dinero a ti tonto del culo");
+        }
+
+        let debt;
+        //If we have more than one debt we build another menu
+        if (debts.length > 1) {
+            await ctx.reply("Que deuda quieres modificar?", {
+                reply_markup: buildDebtListKeyboard(debts)
+            });
+            //Here we listen for first menu
+            while (true) {
+                const update = await conversation.waitForCallbackQuery(/debt/);
+                // Guard: only caller can use it
+                if (update.from?.id !== callerId) {
+                    log.info("Unothorized use of menu");
+                    await update.answerCallbackQuery({
+                        text: "❌ Este menú no es para ti",
+                        show_alert: true
+                    });
+                    continue;
+                }
+
+                debt = update.callbackQuery.data.split(":")[1];
+                if (!debt) {
+                    log.error("No debt read!!");
+                    continue;
+                };
+
+            }
+            //TODO: Call second menu and read data
+            //TODO: Case for 1 debt only
+        }
+
+        //TODO: Build second menu
+        //Here build the second menu
+        await ctx.reply("Quien no es moroso?", {
+            reply_markup: 
+        });
+
+        // ---- 3. Interactive loop
+        while (true) {
+            const update = await conversation.waitForCallbackQuery(/.*/);
+            // Guard: only caller can use it
+            if (update.from?.id !== callerId) {
+                log.info("Unothorized use of menu");
+                await update.answerCallbackQuery({
+                    text: "❌ Este menú no es para ti",
+                    show_alert: true
+                });
+                continue;
+            }
+
+            const action = update.callbackQuery.data;
+            if (!action) {
+                continue
+            };
+
+            if (action === "done") {
+            }
+        }
+
+
     } catch (err) {
         log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
@@ -421,6 +512,16 @@ function buildDebtKeyboard(members: MyChatMember[], selected: number[]) {
     kb
         .text("✅ Done", "done")
         .text("❌ Cancel", "cancel");
+    return kb;
+}
+
+function buildDebtListKeyboard(debts: Debt[]) {
+    log.info("Building keyboard");
+    const kb = new InlineKeyboard();
+    debts.forEach(d => {
+        const label = d.name;
+        kb.text(label, `debt:${label}`).row();
+    });
     return kb;
 }
 
