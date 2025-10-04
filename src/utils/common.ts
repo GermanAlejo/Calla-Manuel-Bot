@@ -48,7 +48,7 @@ export const allCommands: BotCommand[] = [
     { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion" },
     { command: "buenosdias", description: "Permite saber quien da los buenos días aqui." },
     { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" },
-    { command: "updatedebt", description: "Permite actualizar las listas de morosos"}
+    { command: "actualizardeuda", description: "Permite actualizar las listas de morosos"}
 ];
 
 export const helpText = `
@@ -69,7 +69,7 @@ Aquí tienes una lista de comandos disponibles:
 - */setlevel*: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
 - */buenosdias*: Permite saber quien da los buenos días aqui.
 - */setfuerabros*: Permite controlar la reaccion del bot a la palabra *"bro" (admin)*.
-- */updatedebt*: Permite actualizar las listas de morosos
+- */actualizardeuda*: Permite actualizar las listas de morosos
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 

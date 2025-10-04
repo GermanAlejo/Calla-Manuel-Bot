@@ -3,7 +3,7 @@ import { ERRORS } from "../utils/constants/errors";
 import { Debt, isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation } from "../types/squadTypes";
 import { log, MUTED_TIME } from "../utils/common";
 import { InlineKeyboard } from "grammy";
-import { addDebtToPersistance, saveGroupDataToPersistance } from "../middlewares/fileAdapter";
+import { addDebtToPersistance, removeDebtFromPersistance, saveGroupDataToPersistance } from "../middlewares/fileAdapter";
 import { debtReminder } from "./saluda";
 import { IGNORE_STATES } from "../utils/constants/general";
 
@@ -196,40 +196,48 @@ export async function changeDebtorState(conversation: ShutUpConversation, ctx: S
             return ctx.reply("Nadie te debe dinero a ti tonto del culo");
         }
 
-        let debt;
+        const selected: number[] = [];
+        let debt: Debt | undefined;
         //If we have more than one debt we build another menu
-        if (debts.length > 1) {
-            await ctx.reply("Que deuda quieres modificar?", {
-                reply_markup: buildDebtListKeyboard(debts)
-            });
-            //Here we listen for first menu
-            while (true) {
-                const update = await conversation.waitForCallbackQuery(/debt/);
-                // Guard: only caller can use it
-                if (update.from?.id !== callerId) {
-                    log.info("Unothorized use of menu");
-                    await update.answerCallbackQuery({
-                        text: "❌ Este menú no es para ti",
-                        show_alert: true
-                    });
-                    continue;
-                }
-
-                debt = update.callbackQuery.data.split(":")[1];
-                if (!debt) {
-                    log.error("No debt read!!");
-                    continue;
-                };
-
+        await ctx.reply("Que deuda quieres modificar?", {
+            reply_markup: buildDebtListKeyboard(debts)
+        });
+        //Here we listen for first menu
+        while (true) {
+            const update = await conversation.waitForCallbackQuery(/debt/);
+            // Guard: only caller can use it
+            if (update.from?.id !== callerId) {
+                log.info("Unothorized use of menu");
+                await update.answerCallbackQuery({
+                    text: "❌ Este menú no es para ti",
+                    show_alert: true
+                });
+                continue;
             }
-            //TODO: Call second menu and read data
-            //TODO: Case for 1 debt only
+
+            const selectedDebtName = update.callbackQuery.data.split(":")[1];
+            debt = debts.find(d => d.name === selectedDebtName);
+            if (!debt) {
+                log.error("No debt read!!");
+                throw new Error("");
+            } else {
+                log.info("Debt chosen");
+                break;
+            }
         }
 
-        //TODO: Build second menu
-        //Here build the second menu
-        await ctx.reply("Quien no es moroso?", {
-            reply_markup: 
+        if (!debt) {
+            log.error("No debt detected");
+            throw new Error("Error - No Debt Available");
+        }
+
+        //select from array only debt users
+        const debtMembers: MyChatMember[] = session.groupData.chatMembers.filter(
+            member => debt?.debtors.includes(member.username)
+        );
+
+        await ctx.reply("Quien en la deuda ha pagado?", {
+            reply_markup: buildDebtKeyboard(debtMembers, selected)
         });
 
         // ---- 3. Interactive loop
@@ -247,14 +255,65 @@ export async function changeDebtorState(conversation: ShutUpConversation, ctx: S
 
             const action = update.callbackQuery.data;
             if (!action) {
-                continue
-            };
+                continue;
+            }
 
             if (action === "done") {
+                //Extraer deuda
+                await update.answerCallbackQuery();
+                await update.editMessageText(`Estos imbeciles han pagado porfin: ${selected.map(id =>
+                    //Print selected members, we search members with the saved ids
+                    debtMembers.find(m => m.id === id)?.username ?? id).join(", ") || "nadie"}`
+                );
+
+
+                //If no one is selected then don't save
+                if (selected.length === 0) {
+                    log.info("No members selected");
+                    await ctx.reply("No as seleccionado a nadie imbecil");
+                    break;
+                }
+
+                // ---- 4. Persist into session
+                await conversation.external(ctx => {
+                    //update the list of debtors, filter by id and save id into array
+                    const newDebtors = debtMembers.filter(member => !selected.includes(member.id)).map(m => m.username);
+                    if (newDebtors.length === 0) {
+                        log.info("Debt is fully paid");
+                        //remove debt from persistance
+                        removeDebtFromPersistance(ctx.chatId, debt);
+                        ctx.reply(`💰 Deuda "${debt.name}" pagada, ¿A que no era tan dificil?`);
+                    } else {
+                        //Save new debtors into debt
+                        debt.debtors = newDebtors;
+                        //Save it to persistance
+                        addDebtToPersistance(ctx.chatId, debt);
+                        ctx.reply(`💰 Deuda "${debt.name}" actualizada, chavales:\n` +
+                            `@${newDebtors.join("\n")}` +
+                            `\nBIZUMS RAPIDITOS!!!`
+                        );
+                    }
+                    return;
+                });
+
+                break;
             }
+
+            if (action === "cancel") {
+                log.info("Canceling...");
+                await update.answerCallbackQuery();
+                await update.editMessageText("❌ Operación cancelada.");
+                break;
+            }
+
+            // ---- Toggle selection
+            toggleSelection(action, selected);
+
+            await update.answerCallbackQuery();
+            await update.editMessageReplyMarkup({
+                reply_markup: buildDebtKeyboard(debtMembers, selected)
+            });
         }
-
-
     } catch (err) {
         log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));

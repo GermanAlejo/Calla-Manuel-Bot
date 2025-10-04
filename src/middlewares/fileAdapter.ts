@@ -193,6 +193,13 @@ export async function saveGroupDataToPersistance(chatId: number, groupData: Grou
     }
 }
 
+/**
+ * This function creates/updates a debt
+ * 
+ * @param chatId 
+ * @param debt 
+ * @returns 
+ */
 export async function addDebtToPersistance(chatId: number | undefined, debt: Debt) {
     try {
         log.info("Saving new debt to persistance");
@@ -203,8 +210,51 @@ export async function addDebtToPersistance(chatId: number | undefined, debt: Deb
         const data = await storage.read(chatId.toString());
         if (data.chatType === "group" && isDebt(debt)) {
             log.info("Saving new Debt to group");
-            data.groupData.currentDebts.push(debt);
+            const debts = data.groupData.currentDebts;
+            const debtIndex = debts.findIndex(d => d.name === debt.name);
+            //check if debt exists already
+            debtIndex == -1 ? debts.push(debt) : debts[debtIndex] = debt;
+            //update array
+            data.groupData.currentDebts = debts;
         }
+        //save to storage
+        await storage.write(chatId.toString(), data);
+    } catch (err) {
+        log.error(err);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+/**
+ * This function deletes a debt
+ * 
+ * @param chatId 
+ * @param debt 
+ * @returns 
+ */
+export async function removeDebtFromPersistance(chatId: number | undefined, debt: Debt) {
+    try {
+        log.info("Removing debt from persistance");
+        if (!chatId) {
+            log.error("Error: Not chat detected");
+            return new Error("Error: Not chat detected");
+        }
+        const data = await storage.read(chatId.toString());
+        if (data.chatType === "group" && isDebt(debt)) {
+            log.info("Deleting Debt from group");
+            const debts = data.groupData.currentDebts;
+            const debtIndex = debts.findIndex(debt => debt.name === debt.name);
+            //check if debt exists already
+            if(debtIndex === -1) {
+                log.error("No debt found");
+                throw new Error("Error deleting debt");
+            }
+            //update array
+            data.groupData.currentDebts = debts.filter(d => d.name !== debt.name && d.debtors.length > 0);
+        }
+        //save to storage
         await storage.write(chatId.toString(), data);
     } catch (err) {
         log.error(err);

@@ -54,9 +54,9 @@ memberCommands.command('crearnuevadeuda', async (ctx: ShutUpContext) => {
     await ctx.conversation.enter("newDebtConversation");
 });
 
-memberCommands.command('updatedebt', async (ctx: ShutUpContext) => {
+memberCommands.command('actualizardeuda', async (ctx: ShutUpContext) => {
     log.info("Editando deuda");
-    await ctx.conversation.enter("");
+    await ctx.conversation.enter("changeDebtorState");
 });
 
 memberCommands.command('horaespecial', async (ctx: ShutUpContext) => {
