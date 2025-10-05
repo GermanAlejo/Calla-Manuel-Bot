@@ -13,7 +13,7 @@ import { GENERAL } from "./utils/constants/messages";
 import type { ShutUpContext } from "./types/squadTypes";
 import { adminCommands } from "./bot-replies/admin";
 import { sessionInitializerMiddleware } from "./middlewares/fileAdapter";
-import { changeDebtorState, newDebtConversation, setBroLevelConversation, setIgnoreManuelLevel } from "./bot-replies/conversations";
+import { changeDebtorState, newDebtConversation, setBroLevelConversation, setIgnoreManuelLevel } from "./bot-replies/conversations/conversations";
 
 // Create a bot object
 const shutUpBot = new Bot<ShutUpContext>(config.botToken); // <-- place your bot token in this string

@@ -6,7 +6,7 @@ import { ERRORS } from "../utils/constants/errors";
 import type { GroupData, MyChatMember, RateLimitOptions, ShutUpContext } from "../types/squadTypes";
 import { isGroupSession } from "../types/squadTypes";
 import { log } from "../utils/common";
-import { filterIgnoredUser, handleNewUser, handleUserLeaves, updateAdminPriviledges } from "./helpers";
+import { filterIgnoredUser, handleNewUser, handleUserLeaves, isNewUserEvent, isUserLeaving, updateAdminPriviledges } from "./helpers";
 import { saveNewUserToPersistance } from "./fileAdapter";
 
 /**
@@ -87,7 +87,7 @@ export const userFilterMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         let user = groupData.chatMembers.find(u => u.id === caller.id);
         //if the user is not saved we save it, in other case we skip
         if (!user) {
-            let userName = caller.username || caller.first_name;
+            const userName = caller.username || caller.first_name;
             let isAdmin = false;
             //check if creator
             if (status === "creator" || userName === config.firstAdmin || userName === config.secondAdmin) {
@@ -151,8 +151,7 @@ export const groupUserStatusMiddleware: Middleware<ShutUpContext> = async (ctx: 
         }
 
         //handle new user
-        if ((oldStatus === "left" || oldStatus === "kicked" || oldStatus === "creator") &&
-            (newStatus === "member" || newStatus === "administrator" || newStatus === "creator")) {
+        if (isNewUserEvent(newStatus, oldStatus)) {
             log.info("New user detected, saving new user");
             await handleNewUser(ctx, user, groupData, newStatus);
             log.info(`${user.username} ha entrado al grupo.`);
@@ -160,7 +159,7 @@ export const groupUserStatusMiddleware: Middleware<ShutUpContext> = async (ctx: 
         }
 
         //User leaves the group
-        if ((newStatus === "left" || newStatus === "kicked") && (oldStatus === "member" || oldStatus === "administrator" || oldStatus === "creator")) {
+        if (isUserLeaving(newStatus, oldStatus)) {
             log.info("User leaved the group...");
             const newMembersList = await handleUserLeaves(user, groupData, chat?.id);
             //guardar en session lista actualizada

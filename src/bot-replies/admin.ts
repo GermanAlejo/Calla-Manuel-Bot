@@ -37,8 +37,8 @@ adminCommands.command('setlevel', checkAdminMiddleware, async (ctx: ShutUpContex
             log.info("Bot is deactivated");
             return next();
         }
-        //if no rights then cancel
-        if (!botHasAdminRights(ctx)) {
+        //if no rights then cancel ; Must await the result before conditional
+        if (!(await botHasAdminRights(ctx))) {
             log.info("Skipping due to admin rights");
             log.warn("BOT HAS NO ADMIN RIGHTS");
             return await ctx.api.sendMessage(session.groupData.id, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");

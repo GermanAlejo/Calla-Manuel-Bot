@@ -31,7 +31,7 @@ export async function buenasTardes(ctx: ShutUpContext) {
         }
         const userName: string | undefined = ctx.from?.username || ctx.from?.first_name;
         const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-        const isTime: number = isBuenosDiasTime(currentTime);
+        const isTime: CodeEnum = isBuenosDiasTime(currentTime);
         if (isTime == CodeEnum.tardeCode) {
             await ctx.reply(SALUDOS.BUENAS_TARDES + " @" + userName);
             await ctx.react("❤‍🔥");
@@ -58,7 +58,7 @@ export async function buenasNoches(ctx: ShutUpContext) {
             throw new Error("Error getting context user in salutations");
         }
         const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-        const isTime: number = isBuenosDiasTime(currentTime);
+        const isTime: CodeEnum = isBuenosDiasTime(currentTime);
         if (isTime == CodeEnum.nocheCode) {
             await ctx.reply(SALUDOS.BUENAS_NOCHES + " @" + userName);
             await ctx.react("❤‍🔥");
@@ -88,7 +88,7 @@ export async function buenosDias(ctx: ShutUpContext) {
         }
 
         const currentTime: number = new Date().getHours();//FORMAT: 2024-11-29T18:47:42.539
-        const isTime: number = +isBuenosDiasTime(currentTime);
+        const isTime: CodeEnum = isBuenosDiasTime(currentTime);
         if (isTime == CodeEnum.holaCode) {
             await ctx.reply(SALUDOS.BUENOS_DIAS + " @" + username);
             await ctx.react("❤‍🔥");
@@ -243,7 +243,7 @@ export async function debtReminder(ctx: ShutUpContext, debt: Debt) {
             + "Bizums rapiditos!";
 
         log.info("Sending first message");
-        ctx.api.sendMessage(chatId, message);
+        await ctx.api.sendMessage(chatId, message);
 
         log.info("Setting delay of 24h");
         setInterval(async () => {

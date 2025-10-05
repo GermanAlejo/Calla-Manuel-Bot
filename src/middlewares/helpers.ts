@@ -81,7 +81,7 @@ export async function filterIgnoredUser(ctx: ShutUpContext, userIgnored: string,
  * @param ctx 
  * @param user 
  */
-export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "left" | "kicked" | "creator" | "administrator" | "member") {
+export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "left" | "kicked" | "creator" | "administrator" | "member" | "restricted") {
     log.info("Saving new user to session");
     try {
         const chatId = ctx.chat?.id;
@@ -120,7 +120,7 @@ export async function saveNewUser(ctx: ShutUpContext, user: User, newStatus: "le
     }
 }
 
-export async function handleNewUser(ctx: ShutUpContext, user: User, groupData: GroupData, newStatus: "left" | "kicked" | "creator" | "administrator" | "member") {
+export async function handleNewUser(ctx: ShutUpContext, user: User, groupData: GroupData, newStatus: "left" | "kicked" | "creator" | "administrator" | "member" | "restricted") {
     try {
         //Comprobar si existe el usuario 
         const existingMember = groupData.chatMembers.find((m) => m.username === user.username);
@@ -169,3 +169,19 @@ export async function updateAdminPriviledges(groupData: GroupData, userId: numbe
     }
 }
 
+export function isNewUserEvent(newStatus: string, oldStatus: string): boolean {
+    if(!newStatus || !oldStatus) {
+        log.error("Statuses empty");
+        throw new Error("One or more statuses are undefined");
+    }
+    return (oldStatus === "left" || oldStatus === "kicked" || oldStatus === "creator") &&
+            (newStatus === "member" || newStatus === "administrator" || newStatus === "creator");
+}
+
+export function isUserLeaving(newStatus: string, oldStatus: string): boolean {
+    if(!newStatus || !oldStatus) {
+        log.error("Statuses empty");
+        throw new Error("One or more statuses are undefined");
+    }
+    return (newStatus === "left" || newStatus === "kicked") && (oldStatus === "member" || oldStatus === "administrator" || oldStatus === "creator");    
+}

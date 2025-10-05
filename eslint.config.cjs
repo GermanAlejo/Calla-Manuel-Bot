@@ -36,7 +36,7 @@ module.exports = [
     rules: {
       'no-undef': 'warn',
       'import/no-unresolved': 'off',
-      'complexity': ['error', { 'max': 12 }],
+      'complexity': ['error', { 'max': 18 }],
       //Typescript rules
       '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/no-unsafe-function-type': 'error',

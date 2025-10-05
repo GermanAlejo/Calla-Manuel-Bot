@@ -213,7 +213,11 @@ export async function addDebtToPersistance(chatId: number | undefined, debt: Deb
             const debts = data.groupData.currentDebts;
             const debtIndex = debts.findIndex(d => d.name === debt.name);
             //check if debt exists already
-            debtIndex == -1 ? debts.push(debt) : debts[debtIndex] = debt;
+            if(debtIndex === -1) {
+                debts.push(debt);
+            } else  {
+                debts[debtIndex] = debt;
+            }
             //update array
             data.groupData.currentDebts = debts;
         }

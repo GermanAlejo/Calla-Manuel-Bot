@@ -5,7 +5,7 @@
   "main": "lib/bot.js",
   "type": "commonjs",
   "scripts": {
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint 'src/**/*.ts'",
     "build": "npx tsc",
     "build:watch": "tsc --watch",
     "start": "node lib/bot.js",

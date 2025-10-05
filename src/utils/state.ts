@@ -8,9 +8,9 @@ let isBotActive = true;
 let isHoraSet = false;
 let isBuenosDiasCheck = false;
 
-export function setBotState(newState: boolean, chatId: number | undefined) {
+export async function setBotState(newState: boolean, chatId: number | undefined) {
     isBotActive = newState;
-    setPersisanceState(newState, chatId);
+    await setPersisanceState(newState, chatId);
 }
 
 export function getBotState(): boolean {

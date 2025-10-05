@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { InputFile } from 'grammy';
-import type { Context } from 'grammy';
+import type { BotCommand } from "grammy/types";
 import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
@@ -11,7 +11,6 @@ import { CodeEnum } from './enums';
 import { HOURS } from "./constants/general";
 import { ERRORS } from "./constants/errors";
 import { GENERAL } from "./constants/messages";
-import { BotCommand } from "grammy/types";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
@@ -44,7 +43,6 @@ export const allCommands: BotCommand[] = [
     { command: "alechupa", description: "El Ale la chupa" },
     { command: "fernando", description: "DA LA CARA FERNANDO" },
     { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel" },
-    { command: "fuerabros", description: "Elimina todos los mensajes con bros en el grupo" },
     { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion" },
     { command: "buenosdias", description: "Permite saber quien da los buenos días aqui." },
     { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" },
@@ -81,6 +79,7 @@ Ademas tengo las siguientes funciones:
 
 `;
 
+//Used for gifs and audios
 export interface HashFiles {
     key: string;
     value: InputFile;
@@ -95,11 +94,11 @@ export interface HashFiles {
  */
 export function isBuenosDiasTime(saludoTime: number): CodeEnum {
     log.info("--isBuenosDiasTime--");
-    let dayPeriod: number;
+    let dayPeriod: CodeEnum;
     if (saludoTime >= HOURS.mananaTime && saludoTime < HOURS.tardeTime) {
         //mañana
         log.info(GENERAL.IN_MORNING);
-        dayPeriod = HOURS.mediaNocheTime;
+        dayPeriod = CodeEnum.mediaNocheCode;
     } else if (saludoTime >= HOURS.tardeTime && saludoTime < HOURS.nocheTime) {
         //tarde
         log.info(GENERAL.TARDE);
@@ -117,7 +116,7 @@ export function isBuenosDiasTime(saludoTime: number): CodeEnum {
     return dayPeriod;
 }
 
-export async function botHasAdminRights(ctx: Context): Promise<boolean> {
+export async function botHasAdminRights(ctx: ShutUpContext): Promise<boolean> {
     try {
         const chatId = ctx.chat?.id;
         log.info(GENERAL.CHECK_ADMIN)

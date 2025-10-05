@@ -1,11 +1,11 @@
-
-import { ERRORS } from "../utils/constants/errors";
-import { Debt, isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation } from "../types/squadTypes";
-import { log, MUTED_TIME } from "../utils/common";
-import { InlineKeyboard } from "grammy";
-import { addDebtToPersistance, removeDebtFromPersistance, saveGroupDataToPersistance } from "../middlewares/fileAdapter";
-import { debtReminder } from "./saluda";
-import { IGNORE_STATES } from "../utils/constants/general";
+import { ERRORS } from "../../utils/constants/errors";
+import { isGroupSession, type MyChatMember, type ShutUpContext, type ShutUpConversation } from "../../types/squadTypes";
+import type { Debt } from "../../types/squadTypes";
+import { log, MUTED_TIME } from "../../utils/common";
+import { saveGroupDataToPersistance } from "../../middlewares/fileAdapter";
+import { IGNORE_STATES } from "../../utils/constants/general";
+import { buildDebtKeyboard, buildDebtListKeyboard, buildSetIgnoreManuelKeyboard, buildSetLevelBroKeyboard } from "./keyboards";
+import { changeDebtorsMenuLoop, debtMenuLoop } from "./conversation-utils";
 
 /**
  * Handles the interactive flow for creating a new group debt in a Telegram chat.
@@ -55,116 +55,7 @@ export async function newDebtConversation(conversation: ShutUpConversation, ctx:
         });
 
         // ---- 3. Interactive loop
-        while (true) {
-            const update = await conversation.waitForCallbackQuery(/.*/);
-            // Guard: only caller can use it
-            if (update.from?.id !== callerId) {
-                log.info("Unothorized use of menu");
-                await update.answerCallbackQuery({
-                    text: "❌ Este menú no es para ti",
-                    show_alert: true
-                });
-                continue;
-            }
-
-            const action = update.callbackQuery.data;
-            if (!action) {
-                continue
-            };
-
-            if (action === "done") {
-                await update.answerCallbackQuery();
-                await update.editMessageText(`Miembros seleccionados: ${selected.map(id =>
-                    //Search for members inside selected by if, if found return with username if not found return id, then join after map with commas
-                    members.find(m => m.id === id)?.username ?? id).join(", ") || "nadie"}`
-                );
-
-                //Preguntamos por un nombre para la deuda
-                await ctx.reply("Dale un nombre a la deuda:");
-                //guard only caller can name
-                let debtName: string | undefined;
-                const TIMEOUT_MS = 5 * 60 * 1000;//5min 
-                while (!debtName) {
-                    try {
-                        const nameMsg = await conversation.waitFor(":text", { maxMilliseconds: TIMEOUT_MS });
-                        if (nameMsg.from?.id !== callerId) {
-                            log.info("This message is not from caller");
-                            continue;
-                        }
-
-                        const text = nameMsg.message?.text.trim();
-                        if (!text) {
-                            log.error("No name provided");
-                            await ctx.reply("⚠️ El nombre no puede estar vacío. Inténtalo otra vez:");
-                            continue;
-                        }
-                        debtName = text;
-                    } catch (err) {
-                        log.error("Timeout giving a name");
-                        await ctx.reply("⌛ Tiempo agotado. La operación ha sido cancelada.");
-                        return;
-                    }
-                }
-
-                //If no one is selected then don't save
-                if (selected.length === 0) {
-                    log.info("No members selected");
-                    await ctx.reply("No as seleccionado a nadie imbecil");
-                    break;
-                }
-
-                // ---- 4. Persist into session
-                const resDebt: string[] | undefined = await conversation.external(ctx => {
-                    // Filter selected members
-                    const selectedMembers = session.groupData.chatMembers.filter(m => selected.includes(m.id));
-                    // now map usernames
-                    const debtors = selectedMembers.map(m => m.username);
-                    //Create debt
-                    const newDebt: Debt = {
-                        ownerId: callerId,
-                        name: debtName,
-                        debtors: debtors
-                    };
-                    // Check debt is not duplicated, if so abort
-                    if (session.groupData.currentDebts.find(d => d.name === newDebt.name)) {
-                        log.warn("Duplicated debt found - Aborting");
-                        ctx.reply("IMBECIL YA HAY UNA DEUDA CON ESE NOMBRE");
-                        return;
-                    }
-                    //Save it to persistance
-                    addDebtToPersistance(ctx.chatId, newDebt);
-                    //create reminder
-                    debtReminder(ctx, newDebt);
-
-                    return debtors;
-                });
-
-                if (!resDebt) {
-                    log.info("If undefined the debt was duplicated - Abort");
-                    return;
-                }
-
-                await ctx.reply(`💰 Deuda "${debtName}" creada, chavales:\n` +
-                    `@${resDebt.join("\n")}` +
-                    `\nBIZUMS RAPIDITOS!!!`);
-                break;
-            }
-
-            if (action === "cancel") {
-                log.info("Canceling debt");
-                await update.answerCallbackQuery();
-                await update.editMessageText("❌ Operación cancelada.");
-                break;
-            }
-
-            // ---- Toggle selection
-            toggleSelection(action, selected);
-
-            await update.answerCallbackQuery();
-            await update.editMessageReplyMarkup({
-                reply_markup: buildDebtKeyboard(members, selected)
-            });
-        }
+        await debtMenuLoop(session, ctx, conversation, callerId, selected, members);
     } catch (err) {
         log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
@@ -219,7 +110,7 @@ export async function changeDebtorState(conversation: ShutUpConversation, ctx: S
             debt = debts.find(d => d.name === selectedDebtName);
             if (!debt) {
                 log.error("No debt read!!");
-                throw new Error("");
+                throw new Error("No debt read");
             } else {
                 log.info("Debt chosen");
                 break;
@@ -241,79 +132,7 @@ export async function changeDebtorState(conversation: ShutUpConversation, ctx: S
         });
 
         // ---- 3. Interactive loop
-        while (true) {
-            const update = await conversation.waitForCallbackQuery(/.*/);
-            // Guard: only caller can use it
-            if (update.from?.id !== callerId) {
-                log.info("Unothorized use of menu");
-                await update.answerCallbackQuery({
-                    text: "❌ Este menú no es para ti",
-                    show_alert: true
-                });
-                continue;
-            }
-
-            const action = update.callbackQuery.data;
-            if (!action) {
-                continue;
-            }
-
-            if (action === "done") {
-                //Extraer deuda
-                await update.answerCallbackQuery();
-                await update.editMessageText(`Estos imbeciles han pagado porfin: ${selected.map(id =>
-                    //Print selected members, we search members with the saved ids
-                    debtMembers.find(m => m.id === id)?.username ?? id).join(", ") || "nadie"}`
-                );
-
-
-                //If no one is selected then don't save
-                if (selected.length === 0) {
-                    log.info("No members selected");
-                    await ctx.reply("No as seleccionado a nadie imbecil");
-                    break;
-                }
-
-                // ---- 4. Persist into session
-                await conversation.external(ctx => {
-                    //update the list of debtors, filter by id and save id into array
-                    const newDebtors = debtMembers.filter(member => !selected.includes(member.id)).map(m => m.username);
-                    if (newDebtors.length === 0) {
-                        log.info("Debt is fully paid");
-                        //remove debt from persistance
-                        removeDebtFromPersistance(ctx.chatId, debt);
-                        ctx.reply(`💰 Deuda "${debt.name}" pagada, ¿A que no era tan dificil?`);
-                    } else {
-                        //Save new debtors into debt
-                        debt.debtors = newDebtors;
-                        //Save it to persistance
-                        addDebtToPersistance(ctx.chatId, debt);
-                        ctx.reply(`💰 Deuda "${debt.name}" actualizada, chavales:\n` +
-                            `@${newDebtors.join("\n")}` +
-                            `\nBIZUMS RAPIDITOS!!!`
-                        );
-                    }
-                    return;
-                });
-
-                break;
-            }
-
-            if (action === "cancel") {
-                log.info("Canceling...");
-                await update.answerCallbackQuery();
-                await update.editMessageText("❌ Operación cancelada.");
-                break;
-            }
-
-            // ---- Toggle selection
-            toggleSelection(action, selected);
-
-            await update.answerCallbackQuery();
-            await update.editMessageReplyMarkup({
-                reply_markup: buildDebtKeyboard(debtMembers, selected)
-            });
-        }
+        await changeDebtorsMenuLoop(ctx, conversation, callerId, selected, debtMembers, debt);
     } catch (err) {
         log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
@@ -361,7 +180,7 @@ export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx
             }
 
             //get the action
-            const action = await update.callbackQuery.data;
+            const action = update.callbackQuery.data;
             if (action === "level1") {
                 //here we don't do anything just change level parameter
                 log.info("Level 1 selected");
@@ -369,7 +188,7 @@ export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx
                 await update.editMessageText("Manuel ya no sera callado, gran error...");
                 //update persistance
                 groupData.userBlockLevel = IGNORE_STATES.low;
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
@@ -379,7 +198,7 @@ export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx
                 await update.editMessageText("El Manuel sera mandado a callar, sabia decision");
                 //update data
                 groupData.userBlockLevel = IGNORE_STATES.medium;
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
@@ -389,14 +208,15 @@ export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx
                 await update.editMessageText("El Manuel no podra hablar, por fin");
                 //update data
                 groupData.userBlockLevel = IGNORE_STATES.high;
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
+
                 log.info("setting timer to unmute manuel");
                 //temporizador
-                setTimeout(() => {
+                setTimeout(async () => {
                     if (groupData.userBlockLevel === IGNORE_STATES.high) {
                         log.info("User is muted, unmmuting after " + MUTED_TIME);
                         groupData.userBlockLevel = IGNORE_STATES.low;
-                        saveGroupDataToPersistance(groupData.id, groupData);
+                        await saveGroupDataToPersistance(groupData.id, groupData);
                     }
                 }, MUTED_TIME);
                 break;
@@ -417,7 +237,7 @@ export async function setIgnoreManuelLevel(conversation: ShutUpConversation, ctx
     } catch (err) {
         log.error(err);
         log.trace(ERRORS.TRACE(__filename, __dirname));
-        throw new Error("Error in set level conversation")
+        throw new Error("Error in set level conversation");
     }
 }
 
@@ -486,7 +306,7 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
                 await update.editMessageText('Pues nada venga hablad como oligofrenicos...');
                 //modify the data & persistance
                 groupData.broReplyLevel = "off";
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
@@ -496,7 +316,7 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
                 await update.editMessageText('Se contestara a los imbeciles que usen "bro"');
                 //modify persistante
                 groupData.broReplyLevel = "responder";
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
@@ -506,7 +326,7 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
                 await update.editMessageText('A partir de ahora estaran prohibidos los "bro"');
                 //modify persistante
                 groupData.broReplyLevel = "borrar";
-                saveGroupDataToPersistance(groupData.id, groupData);
+                await saveGroupDataToPersistance(groupData.id, groupData);
                 break;
             }
 
@@ -529,83 +349,3 @@ export async function setBroLevelConversation(conversation: ShutUpConversation, 
     }
 }
 
-/**
- * Toggles the selection state of a member ID inside the given array.
- *
- * @param action - A string representing the member ID (usually from a button callback).
- * @param selected - Array of currently selected member IDs. Will be modified in place.
- */
-function toggleSelection(action: string, selected: number[]) {
-    const memberId = parseInt(action);
-    const idx = selected.indexOf(memberId);
-    if (idx === -1) {
-        selected.push(memberId);
-    } else {
-        selected.splice(idx, 1);
-    }
-}
-
-/**
- * Builds a inline keyboard for selecting members.
- *
- * Each member is displayed as a button. If the member is already in the
- * `selected` array, their username is prefixed with a ✅ checkmark.
- *
- * The keyboard also includes two control buttons at the bottom:
- * - **✅ Done** → to confirm selection
- * - **❌ Cancel** → to cancel the process
- *
- * @param members - The list of chat members to display as selectable buttons.
- *                  Each member should have an `id` (number) and `username` (string).
- * @param selected - Array of member IDs that are currently marked as selected.
- *
- * @returns An {@link InlineKeyboard} instance representing the constructed keyboard.
- */
-function buildDebtKeyboard(members: MyChatMember[], selected: number[]) {
-    log.info("Building keyboard");
-    const kb = new InlineKeyboard();
-    members.forEach(m => {
-        const label = selected.includes(m.id) ? `✅ ${m.username}` : m.username;
-        kb.text(label, String(m.id)).row();
-    });
-    kb
-        .text("✅ Done", "done")
-        .text("❌ Cancel", "cancel");
-    return kb;
-}
-
-function buildDebtListKeyboard(debts: Debt[]) {
-    log.info("Building keyboard");
-    const kb = new InlineKeyboard();
-    debts.forEach(d => {
-        const label = d.name;
-        kb.text(label, `debt:${label}`).row();
-    });
-    return kb;
-}
-
-function buildSetLevelBroKeyboard() {
-    log.info("Building keyboard");
-    const kb = new InlineKeyboard();
-    kb.text('Nivel 1: Se permite a los oligofrenicos decir "bro"', "level1")
-        .row()
-        .text('Nivel 2: Se contestara adecuadamente a los que digan "bro"', "level2")
-        .row()
-        .text('Nivel 3: ESTA PROHIBIDO EL USO DE LA PALABRA "BRO"', "level3")
-        .row()
-        .text("❌ Cancel", "cancel");
-    return kb;
-}
-
-function buildSetIgnoreManuelKeyboard() {
-    log.info("Building keyboard");
-    const kb = new InlineKeyboard();
-    kb.text('Nivel 1: Manuel tiene libertad absoluta, gran error...', 'level1')
-        .row()
-        .text('Nivel 2: Mandare mandar callar a Manuel en cada mensaje', 'level2')
-        .row()
-        .text('Nivel 3: El Manuel no podra hablar, por fin', 'level3')
-        .row()
-        .text("❌ Cancel", "cancel");
-    return kb;
-}
