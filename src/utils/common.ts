@@ -1,38 +1,52 @@
 import * as fs from "fs";
 import * as path from "path";
 import { InputFile } from 'grammy';
-import type { Bot, Context } from 'grammy';
+import type { BotCommand } from "grammy/types";
 import type { ILogObj } from 'tslog';
 import { Logger } from 'tslog';
 
-import config from './config';
+import type { ShutUpContext } from "../types/squadTypes";
 import { getBotState } from './state';
-import { ErrorEnum } from './enums';
-import { loadGroupDataStore } from '../middlewares/jsonHandler';
+import { CodeEnum } from './enums';
+import { HOURS } from "./constants/general";
+import { ERRORS } from "./constants/errors";
+import { GENERAL } from "./constants/messages";
 
 export const log: Logger<ILogObj> = new Logger({
     type: "pretty",
     prettyLogTimeZone: "local"
 });
 
-const horaconoMin: number = 58;
-const horaconoHora: number = 16;
+export const MUTED_TIME: number = 30000; //Muted for 30 seconds
+export const voiceFiles: HashFiles[] = []; //List to store voice files
+export const gifFiles: HashFiles[] = []; //List to store gifs files
 
-//Move this to a config/env file
-export const CREATOR_NAME: string = config.creatorName;
-export const CROCANTI_NAME: string = config.firstAdmin;
-export const MIGUE_NAME: string = config.secondAdmin;
-export const MANUEL_NAME: string = config.manuelUser;
+//This regex could turn into structure if needed
+export const broRegex: RegExp = /\bbr[0oòóôõöøōñ]\w*/i;
 
-export const MUTED_TIME: number = 30000;
-export const voiceFiles: HashFiles[] = [];
-export const gifFiles: HashFiles[] = [];
-
+//Array with a list of all needed regex for detecting the "saludos"
 export const buenosDiasRegex: RegExp[] = [
-    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)as)\b/i,
+    /\bbuen(?:os|as|o|a)\s*(?:d(i|í)(as|a|ass|aa))\b/i,
     /\bbuen(?:as|a)\s*(?:tardes)\b/i,
     /\bbuen(?:as|a)\s*(?:noches)\b/i,
     /hola/i
+];
+
+export const allCommands: BotCommand[] = [
+    { command: "start", description: "Start the bot" },
+    { command: "help", description: "Show help text" },
+    { command: "stop", description: "Stop the bot" },
+    { command: "horaespecial", description: "Saber la hora coño" },
+    { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
+    { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
+    { command: "callamanuel", description: "Manda callar al Manuel" },
+    { command: "alechupa", description: "El Ale la chupa" },
+    { command: "fernando", description: "DA LA CARA FERNANDO" },
+    { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel" },
+    { command: "crearnuevadeuda", description: "Crea una deuda y permite su personalizacion" },
+    { command: "buenosdias", description: "Permite saber quien da los buenos días aqui." },
+    { command: "setfuerabros", description: "Permite controlar la reaccion del bot a la palabra prohibida" },
+    { command: "actualizardeuda", description: "Permite actualizar las listas de morosos"}
 ];
 
 export const helpText = `
@@ -44,13 +58,16 @@ Aquí tienes una lista de comandos disponibles:
 - */start*: Inicia el bot. (admin)
 - */stop*: Detiene el bot.
 - */help*: Muestra este mensaje de ayuda.
-- */imbeciles*: Llama imbecil a todo el mundo
-- */putamadre*: Se caga en la puta madre
-- */horaespecial*: Por si se te ha olvidado cuando es la hora coño
-- */callamanuel*: Mandare callar al manuel
-- */alechupa*: Quieres ver al Ale chupar? 😉
-- */fernando*: DA LA CARA FERNANDO
-- */setlevel* [0-2]: Permite controlar la reaccion del bot a Manuel, por si llora (admin)
+- */imbeciles*: Llama imbecil a todo el mundo.
+- */putamadre*: Se caga en la puta madre..
+- */horaespecial*: Por si se te ha olvidado cuando es la hora coño.
+- */callamanuel*: Mandare callar al manuel.
+- */alechupa*: Quieres ver al Ale chupar? 😉.
+- */fernando*: DA LA CARA FERNANDO.
+- */setlevel*: Permite controlar la reaccion del bot a Manuel, por si llora (admin).
+- */buenosdias*: Permite saber quien da los buenos días aqui.
+- */setfuerabros*: Permite controlar la reaccion del bot a la palabra *"bro" (admin)*.
+- */actualizardeuda*: Permite actualizar las listas de morosos
 
 Los comandos para iniciar y parar el bot solo pueden ser usados por los admins
 
@@ -58,46 +75,14 @@ Ademas tengo las siguientes funciones:
 1. Contesto a saludos y buenos dias.
 2. Mando callar al Manuel.
 3. Contare los buenos dias.
+4. El bot no permite el uso de la palabra prohibida...
 
 `;
 
+//Used for gifs and audios
 export interface HashFiles {
     key: string;
     value: InputFile;
-}
-
-export enum AudioNames {
-    callaManuel1 = "calla_manuel_1",
-    callaManuel2 = "calla_manuel_2",
-    imbeciles = "imbeciles",
-    putaMadre = "putaMadre",
-    fernando = "fernando"
-}
-
-export enum GifNames {
-    aleChupa = "ale_chupa"
-}
-
-//this enum should be revisited
-export enum TimeComparatorEnum {
-    mananaTime = 7,
-    tardeTime = 12,
-    nocheTime = 20,
-    onceNocheTime = 23,
-    mediaNocheTime = 0, //use for mañana as well
-    tardeCode = 1,
-    nocheCode = 2,
-    holaCode = 3
-}
-
-export async function getUserIgnore(chatId: string): Promise<number> {
-    const data = loadGroupDataStore();
-    return data[chatId].isUserBlocked;
-}
-
-export async function loadIgnoreUserName(chatId: string): Promise<string | undefined> {
-    const data = loadGroupDataStore();
-    return data[chatId].blockedUser;
 }
 
 /**
@@ -107,51 +92,50 @@ export async function loadIgnoreUserName(chatId: string): Promise<string | undef
  * 
  * @returns 
  */
-export function isBuenosDiasTime(saludoTime: number): TimeComparatorEnum {
+export function isBuenosDiasTime(saludoTime: number): CodeEnum {
     log.info("--isBuenosDiasTime--");
-    let dayPeriod: number;
-    if (saludoTime >= TimeComparatorEnum.mananaTime && saludoTime < TimeComparatorEnum.tardeTime) {
+    let dayPeriod: CodeEnum;
+    if (saludoTime >= HOURS.mananaTime && saludoTime < HOURS.tardeTime) {
         //mañana
-        log.info("In the morning");
-        dayPeriod = TimeComparatorEnum.mediaNocheTime;
-    } else if (saludoTime >= TimeComparatorEnum.tardeTime && saludoTime < TimeComparatorEnum.nocheTime) {
+        log.info(GENERAL.IN_MORNING);
+        dayPeriod = CodeEnum.mediaNocheCode;
+    } else if (saludoTime >= HOURS.tardeTime && saludoTime < HOURS.nocheTime) {
         //tarde
-        log.info("Es por la tarde");
-        dayPeriod = TimeComparatorEnum.tardeCode;
-    } else if ((saludoTime >= TimeComparatorEnum.nocheTime && saludoTime < TimeComparatorEnum.onceNocheTime) ||
-        (saludoTime >= TimeComparatorEnum.mediaNocheTime && saludoTime < TimeComparatorEnum.mananaTime)) {
+        log.info(GENERAL.TARDE);
+        dayPeriod = CodeEnum.tardeCode;
+    } else if ((saludoTime >= HOURS.nocheTime && saludoTime < HOURS.onceNocheTime) ||
+        (saludoTime >= HOURS.mediaNocheTime && saludoTime < HOURS.mananaTime)) {
         //noche
-        log.info("Es de noche");
-        dayPeriod = TimeComparatorEnum.nocheCode;
+        log.info(GENERAL.NOCHE);
+        dayPeriod = CodeEnum.nocheCode;
     } else {
-        log.error(ErrorEnum.errorInTime);
+        log.error(ERRORS.ERROR_IN_TIME);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error(ErrorEnum.errorInTime);
+        throw new Error(ERRORS.ERROR_IN_TIME);
     }
     return dayPeriod;
 }
 
-export async function botHasAdminRights(ctx: Context): Promise<boolean> {
+export async function botHasAdminRights(ctx: ShutUpContext): Promise<boolean> {
     try {
         const chatId = ctx.chat?.id;
-        log.info("Checking if bot is admin")
+        log.info(GENERAL.CHECK_ADMIN)
         if (chatId) {
             const botMember = await ctx.api.getMe();
             const admins = await ctx.getChatAdministrators();
             const isAdmin = admins.find((a) => a.user.id === botMember.id);
             if (isAdmin) {
-                log.info("Bot is admin");
+                log.info(GENERAL.BOT_IS_ADMIN);
                 return true;
-            } else {
-                log.warn("Bot is not admin this will lead to errors");
-                return false;
             }
+            log.warn(GENERAL.BOT_IS_NOT_ADMIN);
+            return false;
         }
         return false;
     } catch (err) {
         log.error(err);
         log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error("Value not recognized");
+        throw new Error(ERRORS.VALUE_NOT_RECOGNIZED);
     }
 }
 
@@ -165,7 +149,7 @@ export function prepareMediaFiles() {
         }
         fs.readdir(mediaFolderPath, (err, files) => {
             if (err) {
-                log.error("Error leyendo carpeta media");
+                log.error(ERRORS.ERROR_READ_FOLDER);
                 log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
                 throw err;
             }
@@ -197,7 +181,7 @@ function getMediaDir() {
     const projectRoot = path.resolve(__dirname, '..', '..');
     const mediaPath = path.join(projectRoot, 'media');
     //Lets read the directory and make sure it exits
-    if(!fs.existsSync(mediaPath)) {
+    if (!fs.existsSync(mediaPath)) {
         log.info("Path to media does not exist, let's create it");
         //create folder
         fs.mkdirSync(mediaPath);
@@ -208,13 +192,15 @@ function getMediaDir() {
     return mediaPath;
 }
 
-export function scheduleMessage(bot: Bot, chatId: number, message: string) {
+export function scheduleMessage(ctx: ShutUpContext, message: string, hora: number, min: number) {
     // Calcula el tiempo hasta la hora específica
     const now = new Date();
     const targetTime = new Date();
-    log.info("Setting hora coño...");
-
-    targetTime.setHours(horaconoHora, horaconoMin, 0, 0);
+    if (getBotState()) {
+        log.warn("Message already scheduled - skipping for this chat");
+        return;
+    }
+    targetTime.setHours(hora, min, 0, 0);
 
     // Si la hora ya pasó hoy, programa para mañana
     if (targetTime.getTime() <= now.getTime()) {
@@ -226,13 +212,18 @@ export function scheduleMessage(bot: Bot, chatId: number, message: string) {
 
     // Usa setTimeout para programar el primer mensaje
     setTimeout(async () => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) {
+            log.error("Chat not found in context");
+            throw new Error("Could not schedule message");
+        }
         // Envía el mensaje
-        await bot.api.sendMessage(chatId, message);
+        await ctx.api.sendMessage(chatId, message);
         log.info("Sending Message");
         // Luego, usa setInterval para repetirlo diariamente
         setInterval(async () => {
             log.info("Setting interval for next day");
-            await bot.api.sendMessage(chatId, message);
+            await ctx.api.sendMessage(chatId, message);
         }, 24 * 60 * 60 * 1000); // Cada 24 horas
     }, delay);
 }

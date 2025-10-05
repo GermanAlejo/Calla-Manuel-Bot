@@ -1,185 +1,122 @@
-import { AudioNames, gifFiles, GifNames, helpText, log, voiceFiles, HashFiles, scheduleMessage, MUTED_TIME, botHasAdminRights } from "../utils/common";
-import { Bot, Context, NextFunction } from "grammy";
-import { getBotState, setBotState } from "../utils/state";
-import { checkAdminMiddleware } from "../middlewares/middleware";
-import { loadGroupData, saveGroupData } from "../middlewares/jsonHandler";
+import { Composer } from "grammy";
+import type { Context, NextFunction } from "grammy";
 
-export function runCommands(bot: Bot) {
-    bot.api.setMyCommands([
-        { command: "start", description: "Start the bot" },
-        { command: "help", description: "Show help text" },
-        { command: "stop", description: "Stop the bot" },
-        { command: "horaespecial", description: "Saber la hora coño" },
-        { command: "imbeciles", description: "Manda un audio para los imbecil a todos" },
-        { command: "putamadre", description: "Manda un audio y se caga en tu puta madre" },
-        { command: "callamanuel", description: "Manda callar al Manuel" },
-        { command: "alechupa", description: "El Ale la chupa" },
-        { command: "fernando", description: "DA LA CARA FERNANDO"},
-        { command: "setlevel", description: "Permite controlar la reaccion del bot a Manuel, uso /setlevel {0-2}" }
-    ])
-        .then(() => log.info("commands description set"))
-        .catch((err: Error) => {
-            log.trace(err);
-            log.error(err);
-            throw new Error();
-        });
+import type { HashFiles } from "../utils/common";
+import type { ShutUpContext } from "../types/squadTypes";
+import { gifFiles, helpText, log, voiceFiles, scheduleMessage } from "../utils/common";
+import { getBotState, getHoraState, setBotState, setHoraState } from "../utils/state";
+import { AUDIO, GIFS } from "../utils/constants/files";
+import { ERRORS } from "../utils/constants/errors";
+import { salutationsCheck } from "./saluda";
+import { HORACONO_HOUR, HORACONO_MIN } from "../utils/constants/general";
 
-    // Reacts to /start commands
-    bot.command('start', async (ctx: Context, next: NextFunction) => {
-        log.info("Start Command...");
-        const chatId: number | undefined = ctx.chat?.id;
-        if (!chatId) {
-            log.warn("Not a group??");
-            return next();
-        } else {
-            await scheduleMessage(bot, chatId, "Feliz hora coño");
-        }
-        if (getBotState()) {
-            log.info("Bot is already active");
-            await ctx.reply('El Manue ya esta siendo callado');
-        } else {
-            log.info("Activating Bot to ignore");
-            setBotState(true)
-            await ctx.reply('Ahora mandaremos callar al Manue...');
-        }
-        return next();
-    });
-    // Reacts to /help commands
-    bot.command('help', async (ctx: Context) => {
-        log.info("Help Command...");
-        await ctx.reply(helpText, { parse_mode: "Markdown" });
-    });
-    bot.command('stop', async (ctx: Context) => {
-        log.info("Stop Command...");
-        if (getBotState()) {
-            log.info("Stopping bot...");
-            setBotState(false);
-            await ctx.reply('El Manue ya no sera callado...');
-        } else {
-            log.info("Bot is already stopped");
-            await ctx.reply('El manue ya es escuchado');
-        }
-    });
-    bot.command('horaespecial', async (ctx) => {
-        log.info("Es la hora coño?");
-        await ctx.reply('La hora coño es a las 16.58');
-    });
-    bot.command('imbeciles', async (ctx: Context) => {
-        log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.imbeciles);
-        if (!audio) {
-            log.error("Error mandando audio");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-            throw new Error();
-        }
-        await ctx.replyWithVoice(audio.value);
-    });
-    bot.command('putamadre', async (ctx: Context) => {
-        log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.putaMadre);
-        if (!audio) {
-            log.error("Error mandando audio");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-            throw new Error();
-        }
-        await ctx.replyWithVoice(audio.value);
-    });
-    bot.command('callamanuel', async (ctx: Context) => {
-        log.info("Mandando callar a manuel...");
-        await callaManuel(ctx);
-    });
-    bot.command('fernando', async (ctx: Context) => {
-        log.info("Sending Audio...");
-        const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AudioNames.fernando);
-        if (!audio) {
-            log.error("Error mandando audio");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-            throw new Error();
-        }
-        await ctx.replyWithVoice(audio.value);
-    });
-    bot.command('alechupa', async (ctx: Context) => {
-        log.info("Mandando gif de Ale...");
-        const gif: HashFiles | undefined = gifFiles.find(g => g.key === GifNames.aleChupa);
-        if (!gif) {
-            log.error("Error mandando gif");
-            log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-            throw new Error();
-        }
-        await ctx.replyWithAnimation(gif.value);
-    });
-    bot.command('setlevel', checkAdminMiddleware, async (ctx: Context) => {
-        1
-        const level = ctx.match;
-        log.info("setting the level of response...");
-        if (typeof level === 'string') {
-            const value: number = parseInt(level);
-            const chatId = ctx.chat?.id.toString();
-            if (chatId) {
-                if (value >= 0 && value < 3) {
-                    log.info("value selected: " + value);
-                    const data = await loadGroupData(chatId);
-                    if (data) {
-                        data.isUserBlocked = value;
-                        if (value === 2) {
-                            if (await botHasAdminRights(ctx)) {
-                                log.info("setting timer to unmute manuel");
-                                //temporizador
-                                setTimeout(async () => {
-                                    const updatedData = await loadGroupData(chatId);
-                                    if (updatedData && updatedData.isUserBlocked === 2) {
-                                        log.info("User is muted, unmmuting after " + MUTED_TIME);
-                                        updatedData.isUserBlocked = 1;
-                                        await saveGroupData(chatId, updatedData);
-                                    }
-                                }, MUTED_TIME);
-                            } else {
-                                log.info("Skipping due to admin rights");
-                                const updatedData = await loadGroupData(chatId);
-                                if (updatedData) {
-                                    updatedData.isUserBlocked = 1;
-                                    await saveGroupData(chatId, updatedData);
-                                }
-                                return ctx.api.sendMessage(chatId, "NO PUEDO HACER ESO PORQUE NO SOY ADMIN IMBECIL");
-                            }
+export const memberCommands = new Composer<ShutUpContext>();
 
-                        }
-                        await printLevel(ctx, value);
-                        await saveGroupData(chatId, data);
-                    }
-                } else {
-                    log.warn("Value setted not valid!");
-                    ctx.reply("Imbecil solo valores entre 0 y 2 incluidos");
-                }
-            }
-        }
-    });
-}
-
-async function printLevel(ctx: Context, value: number) {
-    try {
-        switch (value) {
-            case 0:
-                log.info("Low lever not affectig user, doing nothing");
-                return ctx.reply("Ahora no se mandara callar al Manue, ¿Estas seguro? Tu sabras...");
-            case 1:
-                log.info("Mid level ignore, replying to user...");
-                return ctx.reply("El Manuel sera mandado a callar, sabia decision");
-            case 2:
-                //this requires checking
-                log.info("Highest level, deleting user...");
-                return ctx.reply("El Manuel no podra hablar, por fin");
-            default:
-                log.error("Value not valid");
-                log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-                break;
-        }
-    } catch (err) {
-        log.error(err);
-        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
-        throw new Error("Error setting level");
+// Reacts to /start commands
+memberCommands.command('start', async (ctx: ShutUpContext, next: NextFunction) => {
+    log.info("Start Command...");
+    if (!getHoraState()) {
+        log.info("Setting hora coño...");
+        //once the bot starts schedule the hora coño
+        scheduleMessage(ctx, "Feliz hora coño", HORACONO_HOUR, HORACONO_MIN);
+        setHoraState(!getHoraState());
     }
-}
+    if (getBotState()) {
+        log.info("Bot is already active");
+        await ctx.reply('El Manue ya esta siendo callado');
+    } else {
+        log.info("Activating Bot to ignore");
+        await setBotState(true, ctx.chatId);
+        await ctx.reply('Ahora mandaremos callar al Manue...');
+    }
+    return next();
+});
+
+// Reacts to /help commands
+memberCommands.command('help', async (ctx: ShutUpContext) => {
+    log.info("Help Command...");
+    await ctx.reply(helpText, { parse_mode: "Markdown" });
+});
+
+memberCommands.command('stop', async (ctx: ShutUpContext) => {
+    log.info("Stop Command...");
+    if (getBotState()) {
+        log.info("Stopping bot...");
+        await setBotState(false, ctx.chatId);
+        await ctx.reply('El Manue ya no sera callado...');
+    } else {
+        log.info("Bot is already stopped");
+        await ctx.reply('El manue ya es escuchado');
+    }
+});
+memberCommands.command('crearnuevadeuda', async (ctx: ShutUpContext) => {
+    log.info("Iniciando nueva conversacion de deuda");
+    await ctx.conversation.enter("newDebtConversation");
+});
+
+memberCommands.command('actualizardeuda', async (ctx: ShutUpContext) => {
+    log.info("Editando deuda");
+    await ctx.conversation.enter("changeDebtorState");
+});
+
+memberCommands.command('horaespecial', async (ctx: ShutUpContext) => {
+    log.info("Es la hora coño?");
+    await ctx.reply('La hora coño es a las 16.58');
+});
+
+memberCommands.command('imbeciles', async (ctx: ShutUpContext) => {
+    log.info("Sending Audio...");
+    const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.IMBECILES);
+    if (!audio) {
+        log.error("Error mandando audio");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw new Error();
+    }
+    await ctx.replyWithVoice(audio.value);
+});
+
+memberCommands.command('putamadre', async (ctx: ShutUpContext) => {
+    log.info("Sending Audio...");
+    const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.PUTA_MADRE);
+    if (!audio) {
+        log.error("Error mandando audio");
+        log.trace('Error in: ' + __filename + '- Located: ' + __dirname);
+        throw new Error();
+    }
+    await ctx.replyWithVoice(audio.value);
+});
+
+memberCommands.command('callamanuel', async (ctx: ShutUpContext) => {
+    log.info("Mandando callar a manuel...");
+    await callaManuel(ctx);
+});
+
+memberCommands.command('fernando', async (ctx: ShutUpContext) => {
+    log.info("Sending Audio...");
+    const audio: HashFiles | undefined = voiceFiles.find(v => v.key === AUDIO.FERNANDO);
+    if (!audio) {
+        log.error("Error mandando audio");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error();
+    }
+    await ctx.replyWithVoice(audio.value);
+});
+
+memberCommands.command('alechupa', async (ctx: ShutUpContext) => {
+    log.info("Mandando gif de Ale...");
+    const gif: HashFiles | undefined = gifFiles.find(g => g.key === GIFS.ALE_CHUPA);
+    if (!gif) {
+        log.error("Error mandando gif");
+        log.trace('Error in: ' + __filename + '-Located: ' + __dirname);
+        throw new Error();
+    }
+    await ctx.replyWithAnimation(gif.value);
+});
+
+memberCommands.command('buenosdias', async (ctx: ShutUpContext) => {
+    log.info("Calling buenos dias command ...");
+    await salutationsCheck(ctx);
+})
 
 async function callaManuel(ctx: Context) {
     if (!ctx) {
@@ -190,9 +127,9 @@ async function callaManuel(ctx: Context) {
     const randomNumber = Math.floor(Math.random() * 2) + 1;
     let reply: HashFiles | undefined;
     if (randomNumber == 1) {
-        reply = voiceFiles.find(v => v.key === AudioNames.callaManuel1);
+        reply = voiceFiles.find(v => v.key === AUDIO.CALLA_MANUEL_1);
     } else if (randomNumber == 2) {
-        reply = voiceFiles.find(v => v.key === AudioNames.callaManuel2);
+        reply = voiceFiles.find(v => v.key === AUDIO.CALLA_MANUEL_2);
     }
 
     if (!reply) {

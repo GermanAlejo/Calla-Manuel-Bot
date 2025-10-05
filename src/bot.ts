@@ -1,61 +1,83 @@
-import { Bot} from "grammy";
-import type { Api, Context, RawApi } from "grammy";
+import { Bot } from "grammy";
+import type { Api, RawApi } from "grammy";
+import { conversations, createConversation } from "@grammyjs/conversations";
 
 import config from './utils/config';
-import { log, prepareMediaFiles } from './utils/common';
-import { runCommands } from "./bot-replies/commands";
-import { setBotState } from "./utils/state";
-import { botStatusMiddleware, joinGroupMiddleware, requestRateLimitMiddleware, runBotSalutations, userDetectedMiddleware, userFilterMiddleware, userStatusMiddleware } from "./middlewares/middleware";
-import { ErrorEnum } from "./utils/enums";
+import { allCommands, log, prepareMediaFiles } from './utils/common';
+import { memberCommands } from "./bot-replies/commands";
+import { botStatusMiddleware } from "./utils/state";
+import { requestRateLimitMiddleware, groupUserStatusMiddleware, userFilterMiddleware } from "./middlewares/middleware";
+import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
+import { ERRORS } from "./utils/constants/errors";
+import { GENERAL } from "./utils/constants/messages";
+import type { ShutUpContext } from "./types/squadTypes";
+import { adminCommands } from "./bot-replies/admin";
+import { sessionInitializerMiddleware } from "./middlewares/fileAdapter";
+import { changeDebtorState, newDebtConversation, setBroLevelConversation, setIgnoreManuelLevel } from "./bot-replies/conversations/conversations";
 
 // Create a bot object
-const shutUpBot: Bot | Error = new Bot(config.botToken); // <-- place your bot token in this string
+const shutUpBot = new Bot<ShutUpContext>(config.botToken); // <-- place your bot token in this string
 
 startBot(shutUpBot)
-    .then(() => {
-        log.info("Bot Stopped");
-    })
-    .catch(err => {
-        log.error(err);
-        log.trace(err);
-        throw new Error();
-    });
+  .then(() => {
+    log.info(GENERAL.BOT_DESACTIVADO);
+  })
+  .catch(err => {
+    log.error(err);
+    log.trace(ERRORS.TRACE(__filename, __dirname));
+    throw err;
+  });
 
 try {
-    prepareMediaFiles();
-    runCommands(shutUpBot);
-    runBotSalutations(shutUpBot);
+  log.info("Setting media files");
+  prepareMediaFiles();
+  log.info("Running salutations");
+  runBotSalutations(shutUpBot);
+  log.info("Running responses");
+  runBotResponses(shutUpBot);
 } catch (err) {
-    log.error(err);
-    log.trace("Error in bot.ts");
-    throw err;
+  log.error(err);
+  log.trace(ERRORS.TRACE(__filename, __dirname));
+  throw err;
 }
 
-async function startBot(bot: Bot<Context, Api<RawApi>>) {
-    try {
-        if (bot instanceof Error) {
-            throw new Error(ErrorEnum.launchError);
-        }
-        setBotState(true);
-        log.info("Starting Bot server");
-        const rateLimitMiddleware = requestRateLimitMiddleware({
-            limit: 8, // Máximo 3 solicitudes
-            timeWindow: 5000, // Ventana de tiempo de 5 segundos
-            onLimitExceeded: async (ctx: Context) => {
-                log.warn("Solicitudes maximas alcanzadas!");
-                await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.")
-            }
-        });
-        bot.use(rateLimitMiddleware);
-        bot.use(botStatusMiddleware);
-        bot.use(userFilterMiddleware);
-        bot.on('chat_member', userStatusMiddleware);
-        bot.on('my_chat_member', joinGroupMiddleware);
-        bot.on('message', userDetectedMiddleware);
-        // Start the bot (using long polling)
-        await bot.start();
-    } catch (err) {
-        throw err;
+async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
+  try {
+    if (bot instanceof Error) {
+      throw new Error(ERRORS.LAUNCH_ERROR);
     }
+    log.info(GENERAL.BOT_START);
+    const rateLimitMiddleware = requestRateLimitMiddleware({
+      limit: 4, // Máximo 8 solicitudes
+      timeWindow: 3000, // Ventana de tiempo de 5 segundos
+      onLimitExceeded: () => {
+        log.warn(GENERAL.BOT_MAX_REQUESTS);
+        //comment this to reduce spam in groups
+        //await ctx.reply("🚫 Por favor, espera antes de enviar más solicitudes.");
+      }
+    });
+    // Configurar sesión
+    //order matters, load first initializer
+    bot.use(sessionInitializerMiddleware);//middleware to initialize session
+    //inititalizes plugin
+    bot.use(conversations());
+    //register conversation handler
+    bot.use(createConversation(newDebtConversation));
+    bot.use(createConversation(changeDebtorState));
+    bot.use(createConversation(setIgnoreManuelLevel));
+    bot.use(createConversation(setBroLevelConversation));
+    bot.use(rateLimitMiddleware);
+    bot.use(botStatusMiddleware);
+    bot.on('message', userFilterMiddleware);
+    bot.on('chat_member', groupUserStatusMiddleware);
+    bot.use(adminCommands);
+    bot.use(memberCommands);
+    // Start the bot (using long polling)
+    await bot.api.setMyCommands(allCommands);
+    await bot.start();
+  } catch (err) {
+    log.error("Error starting bot...");
+    throw err;
+  }
 }
 

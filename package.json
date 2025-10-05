@@ -5,18 +5,20 @@
   "main": "lib/bot.js",
   "type": "commonjs",
   "scripts": {
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint 'src/**/*.ts'",
     "build": "npx tsc",
     "build:watch": "tsc --watch",
     "start": "node lib/bot.js",
-    "start-dev": "tsx src/bot.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start-dev": "tsx src/bot.ts"
   },
   "author": "german",
   "license": "ISC",
   "dependencies": {
+    "@grammyjs/conversations": "^2.1.0",
+    "@grammyjs/menu": "github:grammyjs/menu",
+    "@grammyjs/storage-file": "^2.5.1",
     "dotenv": "^16.4.5",
-    "grammy": "^1.32.0",
+    "grammy": "^1.36.1",
     "tslog": "^4.9.3"
   },
   "devDependencies": {

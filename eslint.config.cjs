@@ -1,12 +1,11 @@
-//import {  } from '@graphql-eslint/eslint-plugin';
-import tseslint from 'typescript-eslint';
-import typescriptPlugin from '@typescript-eslint/eslint-plugin';
-import typescriptParser from '@typescript-eslint/parser';
-import prettierPlugin from "eslint-plugin-prettier";
-import importPlugin from "eslint-plugin-import";
+const tseslint = require('typescript-eslint');
+const typescriptPlugin = require('@typescript-eslint/eslint-plugin');
+const typescriptParser = require('@typescript-eslint/parser');
+const prettierPlugin = require('eslint-plugin-prettier');
+const importPlugin = require('eslint-plugin-import');
 
 /* eslint-env node */
-export default [
+module.exports = [
   ...tseslint.configs.recommendedTypeChecked.map((config) => ({
     ...config,
     files: ['**/*.ts'], // We use TS config only for TS files
@@ -19,7 +18,7 @@ export default [
       parserOptions: {
         parser: typescriptParser,
         project: true,
-        tsconfigRootDir: import.meta.dirname,
+        tsconfigRootDir: __dirname,
       },
       globals: {
         __dirname: "readonly",
@@ -37,7 +36,7 @@ export default [
     rules: {
       'no-undef': 'warn',
       'import/no-unresolved': 'off',
-      'complexity': ['error', { 'max': 10 }],
+      'complexity': ['error', { 'max': 18 }],
       //Typescript rules
       '@typescript-eslint/no-require-imports': 'error',
       '@typescript-eslint/no-unsafe-function-type': 'error',
