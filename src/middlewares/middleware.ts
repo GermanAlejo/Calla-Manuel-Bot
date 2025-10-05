@@ -37,7 +37,7 @@ export const checkAdminMiddleware: Middleware<ShutUpContext> = async (ctx: ShutU
         }
         const user: MyChatMember | undefined = groupData.chatMembers.find((m) => m.username === caller.username);
         //if it does not exists save it
-        if (!user || user.status === "administrator") {
+        if (!user || user.status !== "administrator") {
             log.info("User has no admin rights or is not found");
             await ctx.reply(`❌ Idiota tu no tienes permiso para usar este comando! ❌`);
             return;
