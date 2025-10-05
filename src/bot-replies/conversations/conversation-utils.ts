@@ -36,7 +36,7 @@ export async function debtMenuLoop(session: GroupSession, ctx: ShutUpContext, co
 
         const action = update.callbackQuery.data;
         if (!action) {
-            continue
+            continue;
         };
 
         if (action === "done") {
@@ -112,7 +112,7 @@ export async function debtMenuLoop(session: GroupSession, ctx: ShutUpContext, co
             }
 
             await ctx.reply(`💰 Deuda "${debtName}" creada, chavales:\n` +
-                `@${resDebt.join("\n")}` +
+                `${resDebt.map(u => `@${u}`).join("\n")}` +
                 `\nBIZUMS RAPIDITOS!!!`);
             break;
         }
