@@ -2,13 +2,15 @@ import type { MiddlewareFn, NextFunction } from "grammy";
 
 import type { ShutUpContext } from "../types/squadTypes";
 import { log } from "./common";
+import { setPersisanceState } from "../middlewares/fileAdapter";
 
 let isBotActive = true;
 let isHoraSet = false;
 let isBuenosDiasCheck = false;
 
-export function setBotState(newState: boolean) {
+export function setBotState(newState: boolean, chatId: number | undefined) {
     isBotActive = newState;
+    setPersisanceState(newState, chatId);
 }
 
 export function getBotState(): boolean {

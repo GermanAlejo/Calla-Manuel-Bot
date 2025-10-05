@@ -5,7 +5,7 @@ import { conversations, createConversation } from "@grammyjs/conversations";
 import config from './utils/config';
 import { allCommands, log, prepareMediaFiles } from './utils/common';
 import { memberCommands } from "./bot-replies/commands";
-import { setBotState, botStatusMiddleware } from "./utils/state";
+import { botStatusMiddleware } from "./utils/state";
 import { requestRateLimitMiddleware, groupUserStatusMiddleware, userFilterMiddleware } from "./middlewares/middleware";
 import { runBotResponses, runBotSalutations } from "./middlewares/helpers";
 import { ERRORS } from "./utils/constants/errors";
@@ -46,7 +46,6 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
     if (bot instanceof Error) {
       throw new Error(ERRORS.LAUNCH_ERROR);
     }
-    setBotState(true);
     log.info(GENERAL.BOT_START);
     const rateLimitMiddleware = requestRateLimitMiddleware({
       limit: 4, // Máximo 8 solicitudes
@@ -58,7 +57,6 @@ async function startBot(bot: Bot<ShutUpContext, Api<RawApi>>) {
       }
     });
     // Configurar sesión
-    //bot.use(session({ storage }));
     //order matters, load first initializer
     bot.use(sessionInitializerMiddleware);//middleware to initialize session
     //inititalizes plugin

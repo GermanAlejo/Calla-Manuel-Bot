@@ -26,7 +26,7 @@ memberCommands.command('start', async (ctx: ShutUpContext, next: NextFunction) =
         await ctx.reply('El Manue ya esta siendo callado');
     } else {
         log.info("Activating Bot to ignore");
-        setBotState(true)
+        setBotState(true, ctx.chatId);
         await ctx.reply('Ahora mandaremos callar al Manue...');
     }
     return next();
@@ -42,7 +42,7 @@ memberCommands.command('stop', async (ctx: ShutUpContext) => {
     log.info("Stop Command...");
     if (getBotState()) {
         log.info("Stopping bot...");
-        setBotState(false);
+        setBotState(false, ctx.chatId);
         await ctx.reply('El Manue ya no sera callado...');
     } else {
         log.info("Bot is already stopped");

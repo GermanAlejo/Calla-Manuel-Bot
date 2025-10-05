@@ -179,7 +179,7 @@ export async function saveGroupDataToPersistance(chatId: number, groupData: Grou
             log.error("Error - removing from private chat");
             throw new Error("Removing from private chat");
         }
-        if(data.groupData) {
+        if (data.groupData) {
             log.info("Updating group data to persistance");
             data.groupData = groupData;
             //modify file
@@ -247,13 +247,33 @@ export async function removeDebtFromPersistance(chatId: number | undefined, debt
             const debts = data.groupData.currentDebts;
             const debtIndex = debts.findIndex(debt => debt.name === debt.name);
             //check if debt exists already
-            if(debtIndex === -1) {
+            if (debtIndex === -1) {
                 log.error("No debt found");
                 throw new Error("Error deleting debt");
             }
             //update array
             data.groupData.currentDebts = debts.filter(d => d.name !== debt.name && d.debtors.length > 0);
         }
+        //save to storage
+        await storage.write(chatId.toString(), data);
+    } catch (err) {
+        log.error(err);
+        log.error("Error saving to persistance");
+        log.trace(ERRORS.TRACE(__filename, __dirname));
+        throw err;
+    }
+}
+
+export async function setPersisanceState(newState: boolean, chatId: number | undefined) {
+    try {
+        log.info("Saving new state to persistance");
+        if (!chatId) {
+            log.error("Error: Not chat detected");
+            return new Error("Error: Not chat detected");
+        }
+        const data = await storage.read(chatId.toString());
+        //change state
+        data.isBotActive = newState;
         //save to storage
         await storage.write(chatId.toString(), data);
     } catch (err) {
